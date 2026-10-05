@@ -93,11 +93,24 @@ stage_wine() {
 # programs. Upstream seeds the side-by-side store only for 32-bit processes,
 # so an x64 program whose manifest asks for Common Controls 6 got comctl32 5
 # and aborted at its first v6-only call (TaskDialogIndirect).
+#
+# ntdll is rebuilt too, from the pinned Wine plus ci/patches/wine: its
+# activation-context code must resolve "*" to amd64 in an ARM64EC process
+# (0002), so x64 programs find the amd64_ entries the app seeds and the
+# aarch64 desktop keeps its arm64_ lookups. The shipped ntdll.dll was built
+# from the same pinned commit (7b56800), so nothing else changes.
 stage_pe64() {
-    log "ARM64EC modules: comctl32_v6"
+    log "ARM64EC modules: comctl32_v6, ntdll"
     mingw_toolchain
     JOBS="$JOBS" bash "$R/build/wine-pe/build-modules.sh" comctl32_v6
     test -f "$R/app/Madeira/arm64ec-windows/comctl32_v6.dll"
+    # The shipped image already contains an "amd64" string elsewhere, so check the source.
+    grep -A5 '^#elif defined __arm64ec__' "$R/wine/dlls/ntdll/actctx.c" | grep -q 'L"amd64"' ||
+        { echo "ci/patches/wine/0002 is not applied" >&2; exit 1; }
+    local before; before=$(wc -c < "$R/app/Madeira/arm64ec-windows/ntdll.dll")
+    bash "$R/build/wine-pe/build-ntdll.sh"
+    echo "ntdll.dll: shipped $before bytes, rebuilt $(wc -c < "$R/app/Madeira/arm64ec-windows/ntdll.dll") bytes"
+}
 }
 
 # 32-bit programs (WoW64, docs/WOW64.md): the i386 Windows farm in

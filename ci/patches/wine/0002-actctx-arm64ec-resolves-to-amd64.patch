@@ -1,0 +1,18 @@
+diff --git a/dlls/ntdll/actctx.c b/dlls/ntdll/actctx.c
+index 47464d40..07891502 100644
+--- a/dlls/ntdll/actctx.c
++++ b/dlls/ntdll/actctx.c
+@@ -595,7 +595,12 @@ static const xmlstr_t empty_xmlstr;
+ 
+ #ifdef __i386__
+ static const WCHAR current_archW[] = L"x86";
+-#elif defined __aarch64__ || defined __arm64ec__
++#elif defined __arm64ec__
++/* Madeira (TrollStore fork): an ARM64EC process runs x64 programs and looks
++ * up amd64 side-by-side assemblies, so its "*" resolves to the ARM64EC farm's
++ * amd64_ entries and never to the arm64_ ones a native aarch64 process uses. */
++static const WCHAR current_archW[] = L"amd64";
++#elif defined __aarch64__
+ static const WCHAR current_archW[] = L"arm64";
+ #elif defined __x86_64__
+ static const WCHAR current_archW[] = L"amd64";

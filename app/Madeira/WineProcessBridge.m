@@ -752,7 +752,7 @@ static void madeira_seed_winsxs(NSFileManager *fm, NSString *prefix, NSString *b
         seeded++;
     }
     if (remove)
-        dprintf(STDERR_FILENO, "[WineProc] winsxs: %s assemblies removed (not an ARM64EC session)\n", arch);
+        dprintf(STDERR_FILENO, "[WineProc] winsxs: %s assemblies removed\n", arch);
     else
         dprintf(STDERR_FILENO, "[WineProc] winsxs: %d/%zu %s assemblies seeded, %d skipped\n",
                 seeded, count, arch, skipped);
@@ -765,16 +765,19 @@ static void madeira_seed_winsxs_x86(NSFileManager *fm, NSString *prefix, NSStrin
 
 /* The same store for 64-bit programs (TrollStore fork). Upstream seeds x86
  * only, so an x64 program whose manifest asks for Common Controls 6.0 got
- * comctl32 5 and aborted at its first v6-only call (TaskDialogIndirect). In
- * an ARM64EC process ntdll resolves processorArchitecture="*" to "arm64"
- * (actctx.c current_archW), and some manifests name "amd64": both point at
- * the ARM64EC farm. A pure aarch64 session (Wine's own desktop) also looks
- * for "arm64_" entries, so they exist only while an ARM64EC session runs and
- * are removed otherwise. */
-static void madeira_seed_winsxs_64(NSFileManager *fm, NSString *prefix, NSString *bundle, BOOL arm64ec)
+ * comctl32 5 and aborted at its first v6-only call (TaskDialogIndirect).
+ *
+ * The entries are amd64_ ones, written in every session: a 64-bit program is
+ * often started from the desktop (an aarch64 session), not by Madeira itself.
+ * ci/patches/wine/0002 makes an ARM64EC process resolve
+ * processorArchitecture="*" to "amd64" (stock Wine says "arm64"), so x64
+ * programs find these, while a native aarch64 process, which cannot load an
+ * ARM64EC image, still looks for arm64_ and falls back to its own comctl32.
+ * arm64_ entries an earlier build of this fork wrote are removed. */
+static void madeira_seed_winsxs_64(NSFileManager *fm, NSString *prefix, NSString *bundle)
 {
-    madeira_seed_winsxs(fm, prefix, bundle, "arm64", @"arm64ec-windows", !arm64ec);
-    madeira_seed_winsxs(fm, prefix, bundle, "amd64", @"arm64ec-windows", !arm64ec);
+    madeira_seed_winsxs(fm, prefix, bundle, "arm64", @"arm64ec-windows", YES);
+    madeira_seed_winsxs(fm, prefix, bundle, "amd64", @"arm64ec-windows", NO);
 }
 
 /* FEX's WOW64 module cannot call sysctl, and without an answer it assumes the
@@ -1371,7 +1374,7 @@ static void *wine_process_thread(void *arg) {
                 madeira_link_syswow64_wbem(fm, prefix, bundlePath);
                 madeira_seed_winsxs_x86(fm, prefix, bundlePath);
             }
-            madeira_seed_winsxs_64(fm, prefix, bundlePath, use_arm64ec);
+            madeira_seed_winsxs_64(fm, prefix, bundlePath);
 
             /* ml719: REPAIR THE SHELL FOLDERS. They ship as symlinks to the BUILD
              * MACHINE's home directory.
