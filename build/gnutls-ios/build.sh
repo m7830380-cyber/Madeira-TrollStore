@@ -28,7 +28,7 @@ GNUTLS_VER=3.8.9
 
 SDK=$(xcrun --sdk iphoneos --show-sdk-path)
 CLANG=$(xcrun -f clang)
-HOSTFLAGS="-arch arm64 -isysroot $SDK -miphoneos-version-min=17.0"
+HOSTFLAGS="-arch arm64 -isysroot $SDK -miphoneos-version-min=${MADEIRA_IOS_MIN:-16.0}"
 
 export CC="$CLANG $HOSTFLAGS"
 export CXX="$(xcrun -f clang++) $HOSTFLAGS"

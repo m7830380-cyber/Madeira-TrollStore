@@ -200,7 +200,11 @@ final class JITCoordinator: ObservableObject {
     }
 
     var automaticDescription: String {
-        StikJITHelper.isAvailable
+        if jit_local_mode() {
+            return "On iOS \(UIDevice.current.systemVersion) Madeira asks TrollStore to enable JIT. "
+                + "You can also open Madeira from TrollStore with \"Open with JIT\"."
+        }
+        return StikJITHelper.isAvailable
             ? "StikDebug is installed, so Madeira will open it directly."
             : "StikDebug was not detected, so Madeira will use its built-in helper."
     }
@@ -224,6 +228,20 @@ final class JITCoordinator: ObservableObject {
         error = nil
         status = nil
         connectionProblem = nil
+        // TrollStore / iOS 16: no debugger, VPN or pairing file is involved.
+        if jit_local_mode() {
+            busy = true
+            status = "Asking TrollStore to enable JIT…"
+            StikJITHelper.enableJITViaTrollStore { [weak self] result in
+                Task { @MainActor in
+                    self?.busy = false
+                    self?.status = (try? result.get()).map { _ in "JIT is enabled." }
+                    if case .failure(let failure) = result { self?.error = failure.localizedDescription }
+                    completion(result)
+                }
+            }
+            return
+        }
         ensureLoopback(then: { [weak self] restoreOnFailure in
             self?.enableResolved { result in
                 // Nothing will hold the network open now: put back what the shortcut changed.

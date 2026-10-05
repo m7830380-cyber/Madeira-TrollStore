@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- TrollStore shows "Open with JIT" for apps a debugger may attach to. -->
+	<key>get-task-allow</key>
+	<true/>
+	<key>com.apple.developer.kernel.increased-memory-limit</key>
+	<true/>
+	<key>com.apple.developer.kernel.extended-virtual-addressing</key>
+	<true/>
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+	<!-- The Steam sign-in token is kept in the Keychain; without a team ID the
+	     app needs an explicit access group. -->
+	<key>application-identifier</key>
+	<string>MADEIRA.com.willfaust.madeora</string>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>MADEIRA.com.willfaust.madeora</string>
+	</array>
+</dict>
+</plist>

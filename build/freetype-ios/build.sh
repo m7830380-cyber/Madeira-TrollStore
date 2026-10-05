@@ -17,7 +17,7 @@ SRC="$REPO_ROOT/research/freetype"
 cmake -S "$SRC" -B "$BUILD_DIR/build" -G "Unix Makefiles" \
   -DCMAKE_SYSTEM_NAME=iOS \
   -DCMAKE_OSX_ARCHITECTURES=arm64 \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=${MADEIRA_IOS_MIN:-16.0} \
   -DCMAKE_OSX_SYSROOT="$(xcrun --sdk iphoneos --show-sdk-path)" \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=OFF \

@@ -16,7 +16,7 @@ compile_one() {
     local out=$2
     echo -n "  $out... "
     if xcrun -sdk iphoneos clang \
-        -arch arm64 -isysroot "$SDK" -miphoneos-version-min=17.0 \
+        -arch arm64 -isysroot "$SDK" -miphoneos-version-min=${MADEIRA_IOS_MIN:-16.0} \
         -O2 -fPIC -fvisibility=hidden -fno-stack-protector -fno-strict-aliasing \
         -Wno-implicit-function-declaration -Wno-int-conversion \
         -include "$WINE_BUILD/include/config.h" \

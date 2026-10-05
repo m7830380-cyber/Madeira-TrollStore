@@ -16,6 +16,7 @@
 #include <mach-o/dyld.h>
 #include <os/log.h>
 #include <os/proc.h>
+#include <sys/sysctl.h>
 
 // csops syscall - used to check CS_DEBUGGED flag
 #ifndef CS_DEBUGGED
@@ -445,8 +446,60 @@ uint64_t jit_available_memory(void) {
 // reads x16/x0/x1, performs the operation, and resumes.
 // When no debugger is attached, the SIGTRAP handler skips the BRK.
 
+/* TrollStore / iOS 16: LOCAL JIT MODE.
+ *
+ * Before iOS 26 there is no TXM: once CS_DEBUGGED is set the kernel lets the
+ * process map its own anonymous pages executable, and pages executed from them
+ * that fail code-signing validation are tolerated instead of killing the
+ * process. TrollStore's "Open with JIT" attaches with ptrace and detaches at
+ * once, so CS_DEBUGGED is set but nothing is left to answer the BRK #0xf00d
+ * protocol below. In this mode the two requests are served here instead:
+ * the pool's RX pages come from a first-fit vm_allocate (what the debugger's
+ * _M allocation did), "prepare" has nothing to authorise, and detach has
+ * nothing to detach. MADEIRA_JIT_LOCAL=0/1 overrides the OS-version choice. */
+static int jit_os_major(void) {
+    char v[32] = {0};
+    size_t n = sizeof(v) - 1;
+    if (sysctlbyname("kern.osproductversion", v, &n, NULL, 0) != 0) return 0;
+    return atoi(v);
+}
+
+bool jit_local_mode(void) {
+    static int cached = -1;
+    if (cached < 0) {
+        const char *e = getenv("MADEIRA_JIT_LOCAL");
+        if (e && (e[0] == '0' || e[0] == '1')) cached = e[0] == '1';
+        else {
+            int major = jit_os_major();
+            cached = major > 0 && major < 26;
+        }
+        jit_log("local JIT mode (no debugger protocol): %s (iOS %d)", cached ? "ON" : "off", jit_os_major());
+    }
+    return cached == 1;
+}
+
+static void *jit_local_alloc_rx(size_t len) {
+    mach_port_t task = mach_task_self();
+    vm_address_t a = 0;
+    size_t size = align_to_page(len);
+    kern_return_t kr = vm_allocate(task, &a, size, VM_FLAGS_ANYWHERE);
+    if (kr != KERN_SUCCESS) {
+        jit_log("[local-jit] vm_allocate(%zu MB) failed kr=%d (%s)", size >> 20, kr, mach_error_string(kr));
+        return NULL;
+    }
+    kr = vm_protect(task, a, size, FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
+    if (kr != KERN_SUCCESS) {
+        jit_log("[local-jit] vm_protect(RX) failed kr=%d (%s) -- is CS_DEBUGGED set?", kr, mach_error_string(kr));
+        vm_deallocate(task, a, size);
+        return NULL;
+    }
+    jit_log("[local-jit] RX pool %zu MB at %p", size >> 20, (void *)a);
+    return (void *)a;
+}
+
 __attribute__((noinline, optnone))
 void *jit26_prepare_region(void *addr, size_t len) {
+    if (jit_local_mode()) return addr ? addr : jit_local_alloc_rx(len);
     register void *x0 __asm__("x0") = addr;
     register size_t x1 __asm__("x1") = len;
     __asm__ volatile(
@@ -461,6 +514,7 @@ void *jit26_prepare_region(void *addr, size_t len) {
 
 __attribute__((noinline, optnone))
 void jit26_detach(void) {
+    if (jit_local_mode()) return;
     __asm__ volatile(
         "mov x16, #0\n"
         "brk #0xf00d\n"

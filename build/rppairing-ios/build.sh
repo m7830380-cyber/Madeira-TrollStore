@@ -13,7 +13,7 @@ set -euo pipefail
 BUILD_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$BUILD_DIR/../.." && pwd)"
 TARGET=aarch64-apple-ios
-export IPHONEOS_DEPLOYMENT_TARGET=17.0
+export IPHONEOS_DEPLOYMENT_TARGET=${MADEIRA_IOS_MIN:-16.0}
 
 cd "$BUILD_DIR"
 cargo build --release --locked --target "$TARGET"

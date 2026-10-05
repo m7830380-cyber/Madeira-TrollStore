@@ -21,7 +21,7 @@ compile_one() {
     echo -n "  $name... "
 
     if xcrun -sdk iphoneos clang \
-        -arch arm64 -isysroot "$SDK" -miphoneos-version-min=17.0 \
+        -arch arm64 -isysroot "$SDK" -miphoneos-version-min=${MADEIRA_IOS_MIN:-16.0} \
         -O2 -fPIC -fvisibility=hidden -fno-stack-protector -fno-strict-aliasing \
         -Wno-implicit-function-declaration -Wno-int-conversion \
         -include "$WINE_BUILD/include/config.h" \
@@ -59,7 +59,7 @@ compile_unixlib() {
     shift 3
     echo -n "  $name... "
     if xcrun -sdk iphoneos clang \
-        -arch arm64 -isysroot "$SDK" -miphoneos-version-min=17.0 \
+        -arch arm64 -isysroot "$SDK" -miphoneos-version-min=${MADEIRA_IOS_MIN:-16.0} \
         -O2 -fPIC -fvisibility=hidden -fno-stack-protector -fno-strict-aliasing \
         -Wno-implicit-function-declaration -Wno-int-conversion \
         -include "$WINE_BUILD/include/config.h" \
@@ -152,7 +152,7 @@ compile_unixlib "$BUILD_DIR/winegstreamer_unixlib_ios.c" "winegstreamer_unixlib"
 # (app/Madeira.xcodeproj, Frameworks phase) next to the FFmpeg archives.
 echo -n "  wg_parser_apple_ios... "
 if xcrun -sdk iphoneos clang \
-    -arch arm64 -isysroot "$SDK" -miphoneos-version-min=17.0 \
+    -arch arm64 -isysroot "$SDK" -miphoneos-version-min=${MADEIRA_IOS_MIN:-16.0} \
     -O2 -fPIC -fvisibility=hidden -fno-stack-protector -fno-strict-aliasing -Wall -Werror=implicit-function-declaration \
     -c "$BUILD_DIR/wg_parser_apple_ios.c" -o "$OBJ_DIR/wg_parser_apple_ios.o" 2>"$OBJ_DIR/wg_parser_apple_ios.err"; then
     echo "OK"

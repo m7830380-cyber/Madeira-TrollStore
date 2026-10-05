@@ -73,6 +73,7 @@
 #include <pthread/pthread.h>
 #include <pthread/qos.h>
 #include <fcntl.h>
+#include <sys/sysctl.h>
 #endif
 #ifdef HAVE_SYS_PARAM_H
 # include <sys/param.h>
@@ -13466,7 +13467,17 @@ void init_syscall_frame( LPTHREAD_START_ROUTINE entry, void *arg, BOOL suspend, 
         /* M8: Ask the debugger to write TEB data to page 0 via BRK #0xf00d cmd 3.
          * The debugger may have kernel privileges that the app doesn't.
          * Uses GDB M (memory write) command to write TEB data at address 0. */
-        if (!mapped) {
+        /* TrollStore / iOS 16: "Open with JIT" detaches at once, and an
+         * unanswered BRK would kill the process here, so ask only a debugger
+         * that is actually attached. */
+        int traced = 0;
+        {
+            struct kinfo_proc kp; size_t kpsz = sizeof(kp);
+            int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
+            if (sysctl(mib, 4, &kp, &kpsz, NULL, 0) == 0) traced = (kp.kp_proc.p_flag & P_TRACED) != 0;
+        }
+        if (!mapped && !traced) ERR("page0: no debugger attached, skipping M8\n");
+        if (!mapped && traced) {
             ERR("page0: trying debugger (BRK #0xf00d, x16=3)...\n");
             register uintptr_t x0_val __asm__("x0") = (uintptr_t)teb;
             register size_t x1_val __asm__("x1") = 0x4000;

@@ -71,6 +71,11 @@ bool jit_task_map_range(uint64_t *min_address, uint64_t *max_address);
 // Memory this process may still allocate before the system's limit.
 uint64_t jit_available_memory(void);
 
+// Pre-iOS 26 (TrollStore "Open with JIT"): CS_DEBUGGED alone lets the process
+// make its own RX pages, so the jit26_* requests are served in-process and no
+// debugger has to stay attached. MADEIRA_JIT_LOCAL=0/1 overrides.
+bool jit_local_mode(void);
+
 // iOS 26 BRK-based protocol: Ask attached debugger (StikDebug) to
 // prepare a memory region for JIT execution.
 // Returns the prepared address (may differ from input on allocation).

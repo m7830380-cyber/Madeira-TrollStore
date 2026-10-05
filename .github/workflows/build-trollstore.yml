@@ -1,0 +1,179 @@
+name: Build TrollStore IPA (iOS 16)
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      rebuild_native:
+        description: Ignore the cached native libraries
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MADEIRA_IOS_MIN: '16.0'
+
+permissions:
+  contents: write
+
+jobs:
+  compile-check:
+    # Swift/ObjC compile errors without waiting hours for the native job; the
+    # link step fails here by design (no native libraries).
+    name: Compile check (no link)
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          xcodebuild -version
+          xcodebuild -downloadComponent MetalToolchain || true
+      - name: Compile
+        run: |
+          set +e
+          xcodebuild -project app/Madeira.xcodeproj -scheme Madeira -configuration Debug \
+            -destination 'generic/platform=iOS' -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO ENABLE_DEBUG_DYLIB=NO COMPILER_INDEX_STORE_ENABLE=NO \
+            build > xcodebuild.log 2>&1
+          echo "xcodebuild exit $?"
+          grep -E "error:" xcodebuild.log | sort -u | head -400
+          echo "== link/other =="; grep -E "^ld: |Undefined symbols|\*\* BUILD" xcodebuild.log | head -20
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: compile-check-log
+          path: xcodebuild.log
+          retention-days: 5
+
+  native:
+    name: Native libraries (Wine, FEX, DXMT, LLVM, FFmpeg, GnuTLS)
+    runs-on: macos-26
+    timeout-minutes: 350
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Cache key for the native libraries
+        id: key
+        run: |
+          subs=$(git submodule status --recursive | awk '{print $1 $2}' | shasum -a 256 | cut -c1-16)
+          echo "key=native-v1-${MADEIRA_IOS_MIN}-${subs}-${{ hashFiles('build/**', 'ci/build-native.sh') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore native libraries
+        id: native-cache
+        if: ${{ !inputs.rebuild_native }}
+        uses: actions/cache/restore@v4
+        with:
+          key: ${{ steps.key.outputs.key }}
+          path: native-libs.tar.zst
+
+      - name: Select Xcode
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          xcodebuild -version
+          xcodebuild -downloadComponent MetalToolchain || true
+
+      - name: Host tools
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: brew install bison flex ninja meson ccache zstd coreutils || true
+
+      - name: LLVM for iOS (cache)
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        id: llvm-cache
+        uses: actions/cache@v4
+        with:
+          key: llvm-ios-8dfdcc7b7-${{ env.MADEIRA_IOS_MIN }}-v1
+          path: |
+            toolchains/llvm-ios-build
+            toolchains/llvm-project/llvm/include
+
+      - name: Build native libraries
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: ci/build-native.sh
+
+      - name: Pack native libraries
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: |
+          files=(app/Madeira/lib*.a app/Madeira/legal/LICENSES-rppairing-crates.txt FEX/build-ios)
+          tar --exclude='*.o' --exclude='CMakeFiles' -cf - "${files[@]}" | zstd -T0 -19 -o native-libs.tar.zst
+          ls -lh native-libs.tar.zst
+
+      - name: Save native libraries
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ steps.key.outputs.key }}
+          path: native-libs.tar.zst
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-libs
+          path: native-libs.tar.zst
+          retention-days: 7
+
+  app:
+    name: Madeira.app → .tipa
+    needs: native
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-libs
+
+      - name: Unpack native libraries
+        run: |
+          brew install zstd ldid || true
+          zstd -d -c native-libs.tar.zst | tar -xf -
+          ls -l app/Madeira/*.a
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          xcodebuild -version
+          xcodebuild -downloadComponent MetalToolchain || true
+
+      - name: Build and package
+        run: ci/build-app.sh
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xcodebuild-log
+          path: out/xcodebuild.log
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Madeira-trollstore-tipa
+          path: out/*.tipa
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" out/*.tipa --title "Madeira $GITHUB_REF_NAME (TrollStore, iOS 16)" \
+            --notes "Install the .tipa with TrollStore, then open Madeira with **Open with JIT** (long-press in TrollStore's app list) or tap Enable JIT in Madeira." \
+            || gh release upload "$GITHUB_REF_NAME" out/*.tipa --clobber

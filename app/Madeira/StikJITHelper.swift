@@ -76,6 +76,45 @@ enum StikJITHelper {
         }
     }
 
+    /// TrollStore (iOS 16): its apple-magnifier://enable-jit URL brings this running
+    /// app to the front and has TrollStore's root helper attach and detach, which
+    /// leaves CS_DEBUGGED set. Nothing stays attached; JITAllocator's local mode
+    /// makes the pool in-process.
+    static func enableJITViaTrollStore(timeout: TimeInterval = 30,
+                                       completion: @escaping (Result<Void, Error>) -> Void) {
+        let failed = { (message: String) in
+            LogStore.shared.log(message, level: .error)
+            completion(.failure(NSError(domain: "MadeiraJIT", code: 21,
+                                        userInfo: [NSLocalizedDescriptionKey: message])))
+        }
+        guard let bundleID = Bundle.main.bundleIdentifier,
+              let url = URL(string: "apple-magnifier://enable-jit?bundle-id=\(bundleID)") else {
+            failed("Madeira could not create the TrollStore request.")
+            return
+        }
+        LogStore.shared.log("Asking TrollStore to enable JIT for \(bundleID)...")
+        UIApplication.shared.open(url, options: [:]) { success in
+            guard success else {
+                failed("TrollStore did not answer. Close Madeira and open it from TrollStore with \"Open with JIT\" "
+                    + "(long-press Madeira in TrollStore's app list).")
+                return
+            }
+            let deadline = Date().addingTimeInterval(timeout)
+            let timer = Timer(timeInterval: 0.5, repeats: true) { timer in
+                if SigningStatus.current.debugged {
+                    timer.invalidate()
+                    LogStore.shared.log("JIT enabled by TrollStore (CS_DEBUGGED set).", level: .success)
+                    completion(.success(()))
+                } else if Date() >= deadline {
+                    timer.invalidate()
+                    failed("TrollStore did not enable JIT. Update TrollStore to 2.0.9 or later, or open Madeira "
+                        + "from TrollStore with \"Open with JIT\".")
+                }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+
     /// ml1235 (local, 2026-10-02) is folded in here: upstream's waitForDebugger
     /// waits for `ready` (CS_DEBUGGED and a live debugger), which is what ml1235's
     /// pollForJIT did; the flag-only poll reported success at once in the
@@ -133,7 +172,8 @@ enum StikJITHelper {
     /// polls this every 2 s for the whole app run (and waitForDebugger every 0.5 s).
     static var ready: Bool {
         guard SigningStatus.current.debugged else { return false }
-        return !attachCheck || poolTaken || isDebuggerAttached()
+        // TrollStore / iOS 16: CS_DEBUGGED alone is enough, the pool is made in-process.
+        return !attachCheck || poolTaken || jit_local_mode() || isDebuggerAttached()
     }
 
     /// CS_DEBUGGED is set but nothing can answer a pool request: JIT has to be
@@ -163,7 +203,7 @@ enum StikJITHelper {
         // whether a debugger is attached now. The handler cannot take a BRK away
         // from an attached debugger, which sees the exception first, so a wrong
         // reading costs nothing.
-        if !debuggerAttached && MadeiraConfig.flag("MADEIRA_JIT_TRAP_FALLBACK") {
+        if !debuggerAttached && !jit_local_mode() && MadeiraConfig.flag("MADEIRA_JIT_TRAP_FALLBACK") {
             jit_arm_trap_fallback()
             LogStore.shared.log("[jit-debugger] no debugger is attached although CS_DEBUGGED is set: "
                 + "an unanswered pool request now fails the launch instead of crashing the app", level: .error)
@@ -476,6 +516,12 @@ enum StikJITHelper {
         // ml1040: the plugs existed only to steer first-fit; give the VA back.
         for (a, sz) in plugs { vm_deallocate(mach_task_self_, a, sz) }
         guard let rxPtr = rxPtrOpt else {
+            if requestUnanswered && jit_local_mode() {
+                poolFailure = "Madeira could not create its JIT memory. Close Madeira, open it from TrollStore with "
+                    + "\"Open with JIT\" and try again."
+                LogStore.shared.log("[local-jit] the in-process RX pool could not be created (see the [local-jit] lines)", level: .error)
+                return nil
+            }
             if requestUnanswered && !debuggerAttached {
                 // Nothing answered the BRK: there is no pool and no placement to
                 // re-roll, so the app stays up and says what to do.
