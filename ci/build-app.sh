@@ -25,6 +25,15 @@ grep -E "error:|warning: .*only available|BUILD (SUCCEEDED|FAILED)|\*\* " "$OUT/
 [ $rc -eq 0 ] || { echo "xcodebuild failed ($rc); full log in the xcodebuild-log artifact"; exit $rc; }
 
 APP="$DD/Build/Products/Debug-iphoneos/Madeira.app"
+
+# iOS 16.2 launch check: a symbol bound strongly to a system library that the
+# OS does not export stops dyld before main. These libc++ ones are newer than
+# 16.2 (app/Madeira/iOS16LibcxxCompat.cpp defines them in the app instead).
+too_new='to_charsEPcS0_[def]|__libcpp_verbose_abort|3pmr15memory_resource'
+if nm -m -u "$APP/Madeira" | grep -v weak | grep "from libc++" | grep -E "$too_new"; then
+    echo "error: the binary imports libc++ symbols that iOS 16.2 does not have (above)"
+    exit 1
+fi
 STAGE="$OUT/stage"
 rm -rf "$STAGE"; mkdir -p "$STAGE/Payload"
 ditto "$APP" "$STAGE/Payload/Madeira.app"
