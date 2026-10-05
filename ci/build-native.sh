@@ -55,8 +55,8 @@ stage_ffmpeg() {
     bash "$R/build/ffmpeg/build.sh"
 }
 
-stage_wine() {
-    log "llvm-mingw + configured Wine tree"
+# llvm-mingw (pinned by docs/BUILDING.md) and Homebrew's bison 3 / flex on PATH.
+mingw_toolchain() {
     if [ ! -d "$TC/$LLVM_MINGW" ]; then
         curl -fsSL -o "$TC/$LLVM_MINGW.tar.xz" \
             "https://github.com/mstorsjo/llvm-mingw/releases/download/20260421/$LLVM_MINGW.tar.xz"
@@ -65,6 +65,11 @@ stage_wine() {
         rm "$TC/$LLVM_MINGW.tar.xz"
     fi
     export PATH="$TC/$LLVM_MINGW/bin:$(brew --prefix bison)/bin:$(brew --prefix flex)/bin:$PATH"
+}
+
+stage_wine() {
+    log "llvm-mingw + configured Wine tree"
+    mingw_toolchain
     local B="$R/wine/build-arm64ec"
     if [ ! -f "$B/config.status" ]; then
         mkdir -p "$B"
@@ -81,6 +86,21 @@ stage_wine() {
     ls "$B/include/wtypes.h" "$B/include/dwrite.h" "$B/include/mfobjects.h"
     # The unix-side scripts read the same configured tree under this name.
     ln -sfn build-arm64ec "$R/wine/build-macos"
+}
+
+# 32-bit programs (WoW64, docs/WOW64.md): the i386 Windows farm in
+# app/Madeira/i386-windows (every i386 Wine module plus DXMT's 32-bit
+# d3d9/d3d10core/d3d11/dxgi/winemetal). Without it the launcher treats an i386
+# program as 64-bit and it dies in build_wow64_parameters.
+stage_i386() {
+    log "i386 Windows farm (WoW64)"
+    mingw_toolchain
+    JOBS="$JOBS" bash "$R/build/wine-i386/build.sh" || {
+        tail -60 "$R/wine/build-i386/madeira-i386-build.log" 2>/dev/null
+        exit 1
+    }
+    test -f "$R/app/Madeira/i386-windows/ntdll.dll"
+    ls "$R/app/Madeira/i386-windows" | wc -l
 }
 
 stage_ntdll() {

@@ -198,9 +198,67 @@ jobs:
           path: app/Madeira/libdxmt_combined.a
           retention-days: 7
 
+  wine-i386:
+    # 32-bit programs (WoW64): the i386 Windows farm, app/Madeira/i386-windows.
+    name: i386 Windows farm (WoW64)
+    runs-on: macos-26
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Cache key
+        id: key
+        run: |
+          subs=$(git submodule status wine dxmt | awk '{print $1}' | tr '\n' '-')
+          echo "key=i386-v1-${subs}-${{ hashFiles('build/wine-i386/**', 'ci/build-native.sh', 'ci/patches/wine/**', 'ci/patches/dxmt/**') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore i386 farm
+        id: cache
+        if: ${{ !inputs.rebuild_native }}
+        uses: actions/cache/restore@v4
+        with:
+          key: ${{ steps.key.outputs.key }}
+          path: i386-windows.tar.zst
+
+      - name: Select Xcode
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          xcodebuild -version
+
+      - name: Host tools
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: brew install bison flex ninja meson zstd || true
+
+      - name: Build
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: ci/build-native.sh i386
+
+      - name: Pack
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          tar -cf - app/Madeira/i386-windows | zstd -T0 -19 -o i386-windows.tar.zst
+          ls -lh i386-windows.tar.zst
+
+      - name: Save i386 farm
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ steps.key.outputs.key }}
+          path: i386-windows.tar.zst
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: i386-windows
+          path: i386-windows.tar.zst
+          retention-days: 7
+
   app:
     name: Madeira.app → .tipa
-    needs: [native, dxmt]
+    needs: [native, dxmt, wine-i386]
     runs-on: macos-26
     timeout-minutes: 120
     steps:
@@ -217,6 +275,17 @@ jobs:
         with:
           name: dxmt-lib
           path: app/Madeira
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: i386-windows
+
+      - name: Unpack the i386 farm (32-bit programs)
+        run: |
+          command -v zstd >/dev/null || brew install zstd
+          zstd -d -c i386-windows.tar.zst | tar -xf -
+          ls app/Madeira/i386-windows | wc -l
+          test -f app/Madeira/i386-windows/ntdll.dll
 
       - name: Unpack native libraries
         run: |

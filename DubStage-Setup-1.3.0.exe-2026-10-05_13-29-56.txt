@@ -1,0 +1,316 @@
+[13:29:27.911] [INFO] local JIT mode (no debugger protocol): ON (iOS 16)
+[13:29:27.944] [INFO] [xinput] ml1920 physical controllers enabled=1
+[13:29:27.944] [INFO] [touch-xinput] ml1930 enabled=1
+[13:29:28.000] [INFO] [library-sections] native-steam=0 sections=0 collapse=1
+[13:29:28.001] [INFO] CS_DEBUGGED flag: SET (flags=0x32007005)
+[13:29:28.001] [INFO] Debugger attached — skipping SIGTRAP handler (debugger handles BRK)
+[13:29:28.001] [INFO] Checking entitlements...
+[13:29:28.001] [OK]   allow-jit: true
+[13:29:28.002] [OK]   increased-memory-limit: true
+[13:29:28.002] [OK]   extended-virtual-addressing: true
+[13:29:28.002] [INFO] [build] v0.1.3 (4)
+[13:29:28.003] [INFO] [device] model=iPhone15,3 idiom=phone os=iOS Version 16.2 (Build 20C65) ram=5618MB available=4082MB cores=6
+[13:29:28.003] [INFO] [device] address-map=[0x104448000,0xfc0000000) 63GB increased-memory=1 extended-va=1
+[13:29:28.004] [INFO] [device] signing: cs-flags=0x32007005 get-task-allow=1 cs-debugged=1 debugger-attached=0 profile=none
+[13:29:28.040] [INFO] [device] settings: low-power=1 thermal=nominal screen=1290x2796@3.0x max-fps=120 utc-offset=+03:00 free-disk=13GB stikdebug-url=0
+[13:29:28.040] [INFO] [frontend] choice=library source=default
+[13:29:28.280] [INFO] MetalLayer: displaySyncEnabled=false (private API, MeloNX pattern)
+[13:29:56.265] [INFO] Session log: logs/DubStage-Setup-1.3.0.exe-2026-10-05_13-29-56.txt
+[13:29:56.278] [INFO] CS_DEBUGGED flag: SET (flags=0x32007005)
+[13:29:56.282] [INFO] [hid-pad] ml2100 session mode=xinput source=default
+[13:29:56.283] [INFO] madeira.cfg absent: legacy madeira-*.txt files apply
+[13:29:56.283] [INFO] Running full Wine sequence...
+[13:29:56.283] [INFO] [device] launch: cs-flags=0x32007005 get-task-allow=1 cs-debugged=1 debugger-attached=0 address-map=[0x104448000,0xfc0000000) 63GB available=4060MB low-power=1 thermal=nominal
+[13:29:56.285] [INFO] [display-shape] resolution=1408x648 mode=fit
+[13:29:56.286] [INFO] [launch-route] library profile applied
+[13:29:56.288] [INFO] Allocating 896MB JIT pool (BRK will suspend process)...
+[13:29:56.289] [INFO] Allocating 896MB JIT pool via debugger...
+[13:29:56.289] [INFO] [jit-debugger] attached=0 at the pool request
+[13:29:56.289] [INFO] JIT-pool frontier already at 0x11e35c000 — no pin needed
+[13:29:56.289] [OK] ml1040: executable window [0x140000000,+128MB) held since image load
+[13:29:56.289] [INFO] ml1040: released the early pool placeholder 0x148000000+368MB for the debugger
+[13:29:56.291] [INFO] ml1036: free holes >=64MB in [0x119000000,0x7000000000) with the window held: 0x11e35c000+540MB 0x148000000+381MB 0x164c3c000+108MB 0x16bd8c000+322MB 0x2a0000000+53760MB
+[13:29:56.291] [INFO] [local-jit] RX pool 896 MB at 0x2a0000000
+[13:29:56.291] [INFO] RX pool at 0x2a0000000
+[13:29:56.291] [INFO] [rw-alias] high hint out of reach; above the RX pool (hint 0x2d8000000) kr=0 RW=0x2d8000000
+[13:29:56.291] [OK] ml977: RX=[0x2a0000000,0x2d8000000) RW=[0x2d8000000,0x310000000) offset=0x38000000 windowHeld=true rwOverlap=false
+[13:29:56.292] [INFO] RW mapping at 0x2d8000000
+[13:29:56.292] [INFO] [no-footprint] pool-RW-alias: [plain/TASK_NULL] entry covers only 134217728 of 939524096 bytes (partial)
+[13:29:56.292] [INFO] [no-footprint] pool-RW-alias: [plain/TASK_NULL] ownership failed kr=4 ((os/kern) invalid argument) rev=ml458
+[13:29:56.292] [INFO] [no-footprint] pool-RW-alias: [plain/self] entry covers only 134217728 of 939524096 bytes (partial)
+[13:29:56.292] [INFO] [no-footprint] pool-RW-alias: [plain/self] ownership failed kr=4 ((os/kern) invalid argument) rev=ml458
+[13:29:56.292] [INFO] [no-footprint] pool-RW-alias: [share/self] ownership failed kr=4 ((os/kern) invalid argument) rev=ml458
+[13:29:56.293] [INFO] [no-footprint] pool-RW-alias: [share/TASK_NULL] ownership failed kr=4 ((os/kern) invalid argument) rev=ml458
+[13:29:56.293] [INFO] [no-footprint] pool-RW-alias: ALL 4 variants refused — pool stays jetsam-counted rev=ml458
+[13:29:56.293] [ERR] [no-footprint] pool applied=false
+[13:29:56.293] [OK] JIT pool ready (debugger still attached).
+[13:29:56.293] [INFO] BRK suspension lasted 0.00s
+[13:29:56.294] [DBG] madeira-d3d12: gate off (madeira.cfg d3d12 unset)
+[13:29:56.295] [OK] JIT pool: RX=0x2a0000000, RW=0x2d8000000, size=896MB
+[13:29:56.295] [INFO] Detaching debugger...
+[13:29:56.296] [OK] Debugger detached.
+[13:29:56.296] [OK] [early-detach] rev=ml524 took 0 ms
+[13:29:56.367] [OK] MetalLayer registered with DXMT shim (window-hosted singleton)
+[13:29:56.493] [INFO] Starting wineserver...
+[13:29:56.494] [INFO] Wine prefix: /var/mobile/Containers/Data/Application/BA520FE6-160F-4312-90A8-AC824A781591/Documents/wine
+[13:29:56.495] [Wine] Wineserver thread created
+[13:29:56.495] [wineserver-bridge] ws_log test - log file set up OK
+[13:29:56.495] [Wine] Wineserver thread started
+[13:29:56.495] [Wine] WINEPREFIX=/var/mobile/Containers/Data/Application/BA520FE6-160F-4312-90A8-AC824A781591/Documents/wine
+[13:29:56.495] [Wine] NLS dir=/private/var/containers/Bundle/Application/F12E2B15-8796-402B-97D9-1326BB10838E/Madeira.app/nls
+[13:29:56.495] [OK] Wineserver thread launched successfully
+[13:29:56.495] [Wine] Calling wineserver_main...
+[phase] wineserver-up          t+  0.207s rev=ml526
+[13:29:56.495] [wineserver] starting init...
+[13:29:56.495] [wineserver] master_socket_timeout set to INFINITE (9223372036854775807)
+[13:29:56.495] [wineserver] init_limits...
+[13:29:56.495] [wineserver] sock_init...
+[13:29:56.495] [wineserver] open_master_socket...
+[13:29:56.496] [wineserver] acquire_lock: listening on fd=23 (NONBLOCK), server_dir=/var/mobile/Containers/Data/Application/BA520FE6-160F-4312-90A8-AC824A781591/Documents/wine/.wineserver/server-1000004-18a04df5
+[madsync] ml1058 in-process synchronisation disabled (madeira.cfg inproc-sync = 1 enables; fastsync is the default)
+[madsync] config inproc-sync=unset cfg=absent dir=env (MADEIRA_CFG_EARLY_DOCS=0 restores the old lookup)
+[13:29:56.496] [wineserver-fd] init_epoll: SKIPPING kqueue on iOS, using poll()
+[13:29:56.496] [wineserver-fd] add_poll_user: user=0 unix_fd=-1 active_users=1
+[13:29:56.496] [wineserver] acquire_lock: master_socket->fd unix_fd=23
+[13:29:56.496] [wineserver] init_signals...
+[13:29:56.496] [wineserver-fd] add_poll_user: user=1 unix_fd=-1 active_users=2
+[13:29:56.496] [wineserver-fd] add_poll_user: user=2 unix_fd=-1 active_users=3
+[13:29:56.496] [wineserver-fd] add_poll_user: user=3 unix_fd=-1 active_users=4
+[13:29:56.496] [wineserver-fd] add_poll_user: user=4 unix_fd=-1 active_users=5
+[13:29:56.496] [wineserver-fd] add_poll_user: user=5 unix_fd=-1 active_users=6
+[13:29:56.496] [wineserver] init_memory...
+[13:29:56.496] [wineserver] load_intl_file + init_directories...
+[13:29:56.496] [wineserver] get_nls_dir: using bridge path '/private/var/containers/Bundle/Application/F12E2B15-8796-402B-97D9-1326BB10838E/Madeira.app/nls'
+[13:29:56.497] [wineserver] load_intl_file: trying path[0]='/private/var/containers/Bundle/Application/F12E2B15-8796-402B-97D9-1326BB10838E/Madeira.app/nls/l_intl.nls' (access=0)
+[13:29:56.497] [wineserver-fd] add_poll_user: user=6 unix_fd=-1 active_users=7
+[13:29:56.497] [wineserver] load_intl_file: SUCCESS with path='/private/var/containers/Bundle/Application/F12E2B15-8796-402B-97D9-1326BB10838E/Madeira.app/nls/l_intl.nls'
+[13:29:56.503] [wineserver-fd] add_poll_user: user=7 unix_fd=-1 active_users=8
+[13:29:56.503] [usd-map] ml731c create alias=0x115550000 region=0x115550000+0x4000 prot=3/3 shared=0
+[13:29:56.503] [usd-map] ml731c create store test: plain=OK release=OK (size=4096)
+[13:29:56.503] [wineserver-fd] add_poll_user: user=8 unix_fd=-1 active_users=9
+[13:29:56.503] [wineserver] init_threading...
+[13:29:56.503] [wineserver] init_registry...
+[13:29:56.559] [wineserver] entering main_loop!
+[13:29:56.559] [wineserver-fd] main_loop_epoll: kqueue_fd=-1 active_users=9
+[13:29:56.559] [wineserver-fd] main_loop_epoll: kqueue_fd=-1, falling back to poll
+[13:29:56.559] [wineserver-fd] main_loop: blocked all signals on wineserver thread
+[13:29:56.559] [wineserver-fd] main_loop: stack=0x16bf2ae80 (wineserver thread stack location)
+[13:29:56.559] [wineserver-fd] main_loop: iOS poll workaround active. active_users=9 master_fd=23
+[13:29:56.559] [wineserver-fd] iOS poll loop: master_fd=23 nb_users=9 active=9
+[13:29:56.559] [wineserver-fd] request-wake semaphore: kr=0 sem=0xfe07
+[13:29:56.559] [srv-poll] MADEIRA_SRV_NOSEM=0 (default semaphore wake path)
+[13:29:56.569] [INFO] [launch] wineserver ready after 73 ms
+[phase] wine-start             t+  0.281s rev=ml526
+[13:29:56.569] [INFO] Starting Wine process...
+[13:29:56.569] [wineserver] inject_client_fd: fd=36
+[13:29:56.570] [OK] Wine process thread launched
+[13:29:56.569] [wineserver-fd] INJECTED client fd=36 at iter=10 client_start=9 — calling master_socket_handle_client
+[13:29:56.569] [wineserver] master_socket_handle_client: fd=36
+[13:29:56.570] [INFO] Waiting for Wine to finish PE loading...
+[13:29:56.569] [wineserver] calling create_process...
+[13:29:56.569] [wineserver-fd] add_poll_user: user=9 unix_fd=-1 active_users=10
+[13:29:56.569] [wineserver] create_process returned 0x161624c00
+[13:29:56.569] [wineserver] calling create_thread...
+[13:29:56.569] [wineserver] send_client_fd: fd=39 handle=0x3a2 msg_fd_unix=36 proc=0020 tid=0000
+[13:29:56.569] [wineserver] send_client_fd: sendmsg returned 4 (expected 4) errno=38
+[13:29:56.570] [wineserver-fd] add_poll_user: user=10 unix_fd=-1 active_users=11
+[13:29:56.570] [wineserver] create_thread done, releasing...
+[13:29:56.570] [wineserver] client fully connected!
+[13:29:56.570] [wineserver-fd] master_socket_handle_client returned, nb_users=11
+[13:29:56.570] [wineserver-fd]   POST-INJECT [0] fd=23 ev=0x1 bytes=0
+[13:29:56.570] [wineserver-fd]   POST-INJECT [1] fd=19 ev=0x1 bytes=0
+[13:29:56.570] [wineserver-fd]   POST-INJECT [2] fd=25 ev=0x1 bytes=0
+[13:29:56.570] [wineserver-fd]   POST-INJECT [3] fd=27 ev=0x1 bytes=0
+[13:29:56.570] [wineserver-fd]   POST-INJECT [4] fd=29 ev=0x1 bytes=0
+[13:29:56.570] [wineserver-fd]   POST-INJECT [5] fd=31 ev=0x1 bytes=0
+[13:29:56.570] [wineserver-fd]   POST-INJECT [6] fd=-1 ev=0x0 bytes=-1
+[13:29:56.570] [wineserver-fd]   POST-INJECT [7] fd=-1 ev=0x0 bytes=-1
+[13:29:56.570] [wineserver-fd]   POST-INJECT [8] fd=-1 ev=0x0 bytes=-1
+[13:29:56.570] [wineserver-fd]   POST-INJECT [9] fd=36 ev=0x1 bytes=0
+[13:29:56.570] [wineserver-fd]   POST-INJECT [10] fd=38 ev=0x1 bytes=0
+[13:29:56.571] [wineserver-fd] POST iter=10 act=11 nb=11 ef=3
+[13:29:56.572] [wineserver-fd] POST iter=11 act=11 nb=11 ef=5
+[13:29:56.573] [wineserver-fd] POST iter=12 act=11 nb=11 ef=7
+[13:29:56.574] [wineserver-fd] POST iter=13 act=11 nb=11 ef=9
+[13:29:56.575] [wineserver-fd] POST iter=14 act=11 nb=11 ef=11
+[13:29:56.577] [wineserver-fd] POST iter=15 act=11 nb=11 ef=13
+[13:29:56.578] [wineserver-fd] POST iter=16 act=11 nb=11 ef=15
+[13:29:56.579] [wineserver-fd] POST iter=17 act=11 nb=11 ef=17
+[13:29:56.580] [wineserver-fd] POST iter=18 act=11 nb=11 ef=19
+[13:29:56.581] [wineserver-fd] POST iter=19 act=11 nb=11 ef=21
+[13:29:56.582] [wineserver-fd] POST iter=20 act=11 nb=11 ef=23
+[13:29:56.584] [wineserver-fd] POST iter=21 act=11 nb=11 ef=25
+[config-dir] early MADEIRA_DOCS_DIR=set; native madeira.cfg readers that run before this point (wineserver start: madsync inproc-sync) use it (MADEIRA_CFG_EARLY_DOCS=0 disables)
+[freeze] detector started gen=1 (sleep=0.25s gap>2.0s) rev=ml525
+[13:29:56.585] [wineserver-fd] POST iter=22 act=11 nb=11 ef=27
+[WineProc] PE probe: machine=0x14c (i386, but the bundle has no i386-windows)
+[WineProc] Target exe: C:\users\madeira\Downloads\DubStage-Setup-1.3.0.exe (bundle=arm64ec-windows)
+[13:29:56.586] [wineserver-fd] POST iter=23 act=11 nb=11 ef=29
+[13:29:56.587] [wineserver-fd] POST iter=24 act=11 nb=11 ef=31
+[13:29:56.588] [wineserver-fd] POST iter=25 act=11 nb=11 ef=33
+[13:29:56.589] [wineserver-fd] POST iter=26 act=11 nb=11 ef=35
+[13:29:56.591] [wineserver-fd] POST iter=27 act=11 nb=11 ef=37
+[13:29:56.592] [wineserver-fd] POST iter=28 act=11 nb=11 ef=39
+[13:29:56.593] [wineserver-fd] POST iter=29 act=11 nb=11 ef=41
+[WineProc] Symlinked 167 DLLs from arm64ec-windows -> sys32
+[WineProc] system32\wbem: 3/5 links
+[WineProc] Cross-linked 0 non-colliding files from aarch64-windows -> sys32
+[WineProc] Farm sysx64: 167 links -> arm64ec-windows
+[WineProc] Farm sysaa64: 135 links -> aarch64-windows
+[shell-dir] ml719 0 repaired, 6 already good
+[WineProc] Symlinked 0 MS VC++ Runtime DLLs over arm64ec builtins (skipped 0 for native EC SEH)
+[WineProc] argv[1] = C:\users\madeira\Downloads\DubStage-Setup-1.3.0.exe
+[WineProc] chdir(/var/mobile/Containers/Data/Application/BA520FE6-160F-4312-90A8-AC824A781591/Documents/wine/drive_c/users/madeira/Downloads) = 0 errno=0, PWD + MADEIRA_INITIAL_CWD=C:\users\madeira\Downloads\
+[WineProc] FEX host feature probe: AFP=?,FLAGM=1,FLAGM2=1,FCMA=1,RCPC=1,LRCPC2=1,AES=1,PMULL=1,SHA=1,CRC=1,ATOMICS=1
+ml989: running image /private/var/containers/Bundle/Application/F12E2B15-8796-402B-97D9-1326BB10838E/Madeira.app/Madeira base=0x104448000 pid=5048 LC_UUID=446628E2-2E33-3780-8351-EEE2CD77D8CE
+[va-limit] ml749 walk=0x1000000000 kernel_max=0xfc0000000 -> keeping walk
+ml990: virtual_init user_space_limit 0x7fffffff0000 -> 0x1000000000 -- refusing to advertise address space this device cannot map (HighestUserAddress / ullTotalVirtual / lpMaximumApplicationAddress all derive from it)
+[va-profile] ml749 post-limit TASK_VM_INFO.max_address=0xfc0000000 (63.0 GB)
+[va-profile] ml749 post-limit host_addr_space_limit=0x1000000000 address_space_limit=0x7fffffff0000 user_space_limit=0x1000000000
+[va-profile] ml749 post-limit fixed 16KB @ 0x880000000 (32-40GB               ) -> MAPPABLE (kr=0)
+[va-profile] ml749 post-limit fixed 16KB @ 0x900000000 (32-40GB               ) -> MAPPABLE (kr=0)
+[va-profile] ml749 post-limit fixed 16KB @ 0xa00000000 (40-48GB               ) -> MAPPABLE (kr=0)
+[va-profile] ml749 post-limit fixed 16KB @ 0xb00000000 (40-48GB               ) -> MAPPABLE (kr=0)
+[va-profile] ml749 post-limit fixed 16KB @ 0xc00000000 (48-56GB               ) -> MAPPABLE (kr=0)
+[va-profile] ml749 post-limit fixed 16KB @ 0xd00000000 (48-56GB               ) -> MAPPABLE (kr=0)
+[va-profile] ml749 post-limit fixed 16KB @ 0xe00000000 (56-63GB               ) -> MAPPABLE (kr=0)
+[va-profile] ml749 post-limit fixed 16KB @ 0xf00000000 (56-63GB               ) -> MAPPABLE (kr=0)
+[va-profile] ml749 post-limit fixed 16KB @ 0x7c00000000 (496GB (preferred FEX) ) -> refused (kr=1)
+[layerkit-range] rev=ml898 post-limit: 128 x 256MB tag-51 chunks before kr=0; span 0x11e4fc000..0xad0000000 (39707 MB) -- guest views must stay OUT of this
+[cage] holdback reserve FAILED (errno 12) rev=ml433
+[valloc] ml959 # base=0x115ad0000 size=0x1000 type=0x3000 prot=0x2 tid=0000 | req_hint=0x0 zero_bits=0x0 limit=0x0
+ml968: low-address allocation experiment OFF by default -- see ml968 rationale (range [0x30000000,0x38000000), cap 16)
+ml969: low-alias experiment ENABLED (default) -- returned pointers are UNCHANGED, only the narrowed form gains a name
+[subfloor] ml938 window #0: guest [0x7ffe0000,0x7ffe1000) -> real 0x115ad0000 (4 KB) owner 0x0
+ml952: KUSER_SHARED_DATA window guest 0x7ffe0000+0x1000 -> real 0x115ad0000
+ml977: executable window [0x140000000,0x148000000) is reserved; will be released to the first fixed map of >=64MB that fits inside it
+[valloc] ml959 # base=0xfbfe00000 size=0x200000 type=0x102000 prot=0x4 tid=0000 | req_hint=0x0 zero_bits=0x0 limit=0x0
+[commit-zero] #1 GUEST OK base=0xfbffe0000 size=0x20000 protect=0x4 (zero) checked=1/0 stale=0/0 recommit=0 rev=ml546
+[valloc] ml959 # base=0xfbffe0000 size=0x20000 type=0x1000 prot=0x4 tid=0000 | req_hint=0xfbffe0000 zero_bits=0x0 limit=0x0
+[teb-tsd] key=282 offset=0x8d0 verified=1 tsd_base=0x16bfb70e0 teb=0xfbffe0000
+[Wine connect] fd_socket=37, receiving version fd...
+[13:29:56.693] [Wine connect] fd_socket=37, receiving version fd...
+[Wine init_process] waiting for request_fd from wineserver...
+[13:29:56.693] [Wine init_process] waiting for request_fd from wineserver...
+[fd-recv] sock=37 peb=0xfbfff0000 ret=4 fd=41 handle=3a2 msg_flags=0
+[Wine init_process] got request_fd=41, version=930 (expected 930)
+[13:29:56.693] [Wine init_process] got request_fd=41, version=930 (expected 930)
+[fdtrace] pipes tid=0000 peb=0xfbfff0000 master=37 reply=42/43 wait=44/45 rev=ml586
+[13:29:56.693] [fdtrace] pipes tid=0000 peb=0xfbfff0000 master=37 reply=42/43 wait=44/45 rev=ml586
+[Wine init_process] reply_pipe=43, sending init_first_thread...
+[13:29:56.693] [Wine init_process] reply_pipe=43, sending init_first_thread...
+[srv-own] receive_fd tid=0024 pid=0020 client_fd=43 server_dup=46 kind=fifo rev=ml586
+[srv-own] receive_fd tid=0024 pid=0020 client_fd=45 server_dup=47 kind=fifo rev=ml586
+[srv-own] init_thread tid=0024 pid=0020 reply=43->srv46 wait=45->srv47 rev=ml586
+[13:29:56.693] [wineserver-fd] add_poll_user: user=11 unix_fd=-1 active_users=12
+[13:29:56.693] [wineserver-fd] add_poll_user: user=12 unix_fd=-1 active_users=13
+[Wine init_process] init_first_thread ret=0, pid=32, tid=36
+[13:29:56.693] [Wine init_process] init_first_thread ret=0, pid=32, tid=36
+[fd-cache] rev=ml571 new PEB-keyed cache slot=0 peb=0xfbfff0000
+[drives] published 1/1 DOS drive(s) in \DosDevices rev=ml587
+[13:29:56.693] [drives] published 1/1 DOS drive(s) in \DosDevices rev=ml587
+[13:29:56.693] [wineserver] send_client_fd: fd=34 handle=0x4 msg_fd_unix=36 proc=0020 tid=0024
+[13:29:56.693] [wineserver] send_client_fd: sendmsg returned 4 (expected 4) errno=35
+[fd-recv] sock=37 peb=0xfbfff0000 ret=4 fd=43 handle=4 msg_flags=0
+[usd-clock] ml1001 guest KUSER_SHARED_DATA at 0x115ad0000: GetTickCount64()=234513422 ms (TickCountMultiplier=0x0) — ticking
+0024:fixme:ntdll:get_core_id_regs_arm64 stub
+0024:fixme:ntdll:get_core_id_regs_arm64 stub
+0024:fixme:ntdll:get_core_id_regs_arm64 stub
+0024:fixme:ntdll:get_core_id_regs_arm64 stub
+0024:fixme:ntdll:get_core_id_regs_arm64 stub
+0024:fixme:ntdll:get_core_id_regs_arm64 stub
+[hw-registry] HKLM\HARDWARE\DESCRIPTION\System (volatile): 6/6 CentralProcessor + 6 FloatingPointProcessor "Intel64 Family 6 Model 166 Stepping 1" GenuineIntel "Unknown ARM CPU" ~MHz 1536 FeatureSet 0x2379ffff; BIOS "The Wine project" "iPhone15,3" (SMBIOS, 3 Wine default(s))
+[13:29:56.696] [hw-registry] HKLM\HARDWARE\DESCRIPTION\System (volatile): 6/6 CentralProcessor + 6 FloatingPointProcessor "Intel64 Family 6 Model 166 Stepping 1" GenuineIntel "Unknown ARM CPU" ~MHz 1536 FeatureSet 0x2379ffff; BIOS "The Wine project" "iPhone15,3" (SMBIOS, 3 Wine default(s))
+[iOS env] processing: FNA3D_FORCE_DRIVER=D3D11
+[iOS env] INCLUDED: FNA3D_FORCE_DRIVER=D3D11
+[iOS env] processing: MONO_LOG_LEVEL=warning
+[iOS env] INCLUDED: MONO_LOG_LEVEL=warning
+[iOS env] processing: SteamAppPath=C:\Program Files\Thumper
+[iOS env] INCLUDED: SteamAppPath=C:\Program Files\Thumper
+[iOS env] processing: SteamGameId=356400
+[iOS env] INCLUDED: SteamGameId=356400
+[iOS env] processing: SteamAppId=356400
+[iOS env] INCLUDED: SteamAppId=356400
+[13:29:56.699] [wineserver] send_client_fd: fd=34 handle=0x4 msg_fd_unix=36 proc=0020 tid=0024
+[13:29:56.699] [wineserver] send_client_fd: sendmsg returned 4 (expected 4) errno=35
+[fd-recv] sock=37 peb=0xfbfff0000 ret=4 fd=43 handle=4 msg_flags=0
+ml993: memorystatus_control(GET_MEMLIMIT_PROPERTIES) unavailable (errno=1)
+ml992: os_proc_available_memory=4048 MB + phys_footprint=47 MB = 4096 MB (hw.memsize says 5618 MB)
+ml992: clamping reported physical memory 5618 MB -> 4096 MB (jetsam kills us at the limit regardless of installed RAM)
+ml991: SystemBasicInformation wow=0 PageSize=4096 AllocGranularity=65536 MmNumberOfPhysicalPages=1048575 LowestUserAddress=0x10000 HighestUserAddress=0xfffffffff
+ml991: => ullTotalPhys=4294963200 (4095 MB)  ullTotalVirtual=68719411200 (65535 MB)  [the 28GB reserve is 0x700000000 = 7 x 4096MB]
+[13:29:56.700] [wineserver-fd] add_poll_user: user=13 unix_fd=-1 active_users=14
+[13:29:56.701] [wineserver-fd] add_poll_user: user=14 unix_fd=-1 active_users=15
+[main-exe] open_dll_file('/var/mobile/Containers/Data/Application/BA520FE6-160F-4312-90A8-AC824A781591/Documents/wine/dosdevices/c:/users/madeira/Downloads/DubStage-Setup-1.3.0.exe') = 0x0
+[13:29:56.701] [wineserver] send_client_fd: fd=48 handle=0xc msg_fd_unix=36 proc=0020 tid=0024
+[13:29:56.701] [wineserver] send_client_fd: sendmsg returned 4 (expected 4) errno=35
+[fd-recv] sock=37 peb=0xfbfff0000 ret=4 fd=43 handle=c msg_flags=0
+ml985: preferred base 0x400000+0xe5000 REFUSED status=0xc0000018 image_flags=0x4 charact=0x102 map_addr=0 info_base=0x400000
+[subfloor] ml938 window #1: guest [0x400000,0x4e5000) -> real 0x11e900000 (916 KB) owner 0xfbfff0000
+[va-gaps] ==== map walk (jit pool init) ====
+[va-gaps] FREE 0x0..0x104448000 = 4164 MB
+[va-gaps] FREE 0x310000000..0xfbfe00000 = 51966 MB
+[va-gaps] FREE 0x7000000000..0x8000000000 = 65536 MB (top tail)
+[va-gaps] ==== end: 121666 MB (118 GB) usable outside the carveout ====
+[pool-warmer] cycle=1 touched=2 pages (head=0x4000 tail=0x0)
+[jit-pool] bump-probe off=0x4000 size=0xec000 cur=0x5 max=0x7 execable=1 (VIRGIN control)
+[data-align] ? shifted +0x1000 so .data lands on a 16KB page
+[loopback] OK ipv4 127.0.0.1:53732 connect+accept+1-byte roundtrip rev=ml469
+[loopback] ipv6 [::1]:53734 connect ret=0 errno=0 rev=ml469
+[slot#0] 0x7000000000+16GB CLEAR (periodic)
+[slot#1] 0x7400000000+16GB CLEAR (periodic)
+[slot#2] 0x7800000000+16GB CLEAR (periodic)
+[slot#3] 0x7c00000000+16GB CLEAR (periodic)
+[window] 0x7048000000..0x7400000000 OUTSIDE TASK MAP (ceiling 0xfc0000000) -- no mappings found here because the range is not mapped at all; this is NOT free space rev=ml787 (periodic)
+[jit-pool] image 0x11e900000+0xe5000 (?) → pool 0x2a0005000 used=0xf1000/0x38000000 tramp+0x0
+[copy-verify] ?: OK, 44 .text pages executable (copy @0x2a0005000)
+ml957: ? backing 0x11e900000+0x4000 W RESTORED (section declares EXECUTE|WRITE; backing stays non-exec, pool copy keeps X)
+ml958: ? already-copied section 0x11e9b0000+0x4000 (prot=rwx) -> aligned 0x11e9b0000+0x4000: plain RW kr=0 -- W GRANTED
+ml958: ? already-copied section 0x11e9b0000+0x4000 (prot=rwx) -> aligned 0x11e9b0000+0x4000: plain RW kr=0 -- W GRANTED
+ml958: ? already-copied section 0x11e9b0000+0x8000 (prot=rwx) -> aligned 0x11e9b0000+0x8000: plain RW kr=0 -- W GRANTED
+ml958: ? already-copied section 0x11e9bc000+0x4000 (prot=rwx) -> aligned 0x11e9bc000+0x4000: plain RW kr=0 -- W GRANTED
+ml958: ? already-copied section 0x11e9c0000+0x4000 (prot=rwx) -> aligned 0x11e9c0000+0x4000: plain RW kr=0 -- W GRANTED
+ml958: ? already-copied section 0x11e9c0000+0x4000 (prot=rwx) -> aligned 0x11e9c0000+0x4000: plain RW kr=0 -- W GRANTED
+ml958: ? already-copied section 0x11e9c0000+0x4000 (prot=rwx) -> aligned 0x11e9c0000+0x4000: plain RW kr=0 -- W GRANTED
+ml958: ? already-copied section 0x11e9c4000+0x4000 (prot=rwx) -> aligned 0x11e9c4000+0x4000: plain RW kr=0 -- W GRANTED
+ml958: ? already-copied section 0x11e9d4000+0x4000 (prot=rwx) -> aligned 0x11e9d4000+0x4000: plain RW kr=0 -- W GRANTED
+[main-exe] virtual_map_module = 0x40000003 Machine=0x14c chars=0x102
+[main-exe] load_main_exe = 0x40000003 Machine=0x14c chars=0x102
+[main-exe] NOT_AT_BASE (relocated) — continuing normally
+[valloc] ml959 # base=0x115af0000 size=0x3000 type=0x1000 prot=0x4 tid=0024 | req_hint=0x0 zero_bits=0x0 limit=0x0
+[init-peb] thread_peb=0xfbfff0000 global_peb=0xfbfff0000 params=0x115af0000 module=0x11e900000
+ml990: large-address-space user_space_limit 0x7fffffff0000 -> 0x1000000000 -- refusing to advertise address space this device cannot map (HighestUserAddress / ullTotalVirtual / lpMaximumApplicationAddress all derive from it)
+[usd-clock] wow: no guest window for this process — 32-bit KUSER_SHARED_DATA NOT mapped
+[window] 0x11e4fc000..0xad0000000 regions=401 occupied=6621 MB of 39707 MB free=64829 MB maxhole=31744 MB@0x310000000 rev=ml787 (layerkit-span)
+[window]   <=64K   n=313   5 MB
+[window]   <=1M    n=49    30 MB
+[window]   <=8M    n=9     64 MB
+[window]   <=64M   n=11    281 MB
+[window]   <=512M  n=17    2847 MB
+[window]   >512M   n=2     3392 MB
+[window]   run#0 0x180000000 +0xa4000000 (2624 MB) prot=1 tag=32
+[window]   run#1 0x2d8000000 +0x38000000 (896 MB) prot=3 tag=0
+[window]   run#2 0x2a00cc000 +0x37f34000 (895 MB) prot=5 tag=0
+[window]   run#3 0x22e000000 +0x30000000 (768 MB) prot=1 tag=32
+[window]   run#4 0x280000000 +0x20000000 (512 MB) prot=3 tag=11
+[window]   run#5 0x266000000 +0x1a000000 (416 MB) prot=1 tag=32
+[window]   run#6 0x140000000 +0x8000000 (128 MB) prot=0 tag=0
+[window]   run#7 0x229934000 +0x2e14000 (46 MB) prot=1 tag=0
+[window]   tag1    4 MB
+[window]   tag0    2043 MB
+[window]   tag7    17 MB
+[window]   tag3    7 MB
+[window]   tag2    56 MB
+[window]   tag30   8 MB
+[window]   tag32   3808 MB
+[window]   tag35   164 MB
+[bigres-use] ranges=0 reserved=0 MB committed=0 MB (0%) touched=0/0 (periodic)
+[alert-ring] pos=0 (+0 since last) last8: 0000->0000 0000->0000 0000->0000 0000->0000 0000->0000 0000->0000 0000->0000 0000->0000 rev=ml439
+[waiters] parked=0 over60s=0 rev=ml444
+[ca-shmem-probe] rev=ml896 tag51+purg: kr=0 0x11c7e0000 | tag51: kr=0 0x11c84c000 | purg: kr=0 0x11e9e8000 | plain: kr=0 0x11ea04000 (cycle=1)
+[footprint] rev=ml358 phys=50 MB (peak 50) internal=50 MB compressed=0 MB external=59 MB reusable=3 MB (cycle=1)
+[zone-check] armed and PASSING at cycle=1 (0 ms per check) rev=ml566
+[furniture] window 0x7000000000..0x73ffff0000 = 16383 MB | regions=0 mapped=0 MB free=16383 MB | biggest free gap=16383 MB at 0x7000000000
+[va-scan] FAILED window=0x10000..0x80000000 size=0x3000 align=0x10000 bottom-up tries=32767 skips=0 | seen=0x10000..0x80000000 views=0 maxgap=0x7fff0000 tailgap=0x7fff0000 stop=no-views-in-range | firstfail=0x10000 errno=12(Cannot allocate memory) FREE hole, next region 0x104448000 (+0x104438000 away) <-- iOS REFUSED A FREE ADDRESS  <-- STATUS_NO_MEMORY (callers see a NULL alloc)
+[alloc-fail] ml814 #1 status=c0000017 hint=0x0 size=0x2146 type=0x1000 protect=0x4 tid=0024 | STAGE=fixed-map err=1 at 0x10000+0x4000
+Assertion failed: (!status), function build_wow64_parameters, file env_ios.c, line 1921.

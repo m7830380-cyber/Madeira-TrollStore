@@ -122,3 +122,52 @@ index ec97552..94311ee 100644
          });
          function_def_stream << "ENDT";
  
+diff --git a/src/winemetal/unix/winemetal_unix.c b/src/winemetal/unix/winemetal_unix.c
+index db46cda..ffdf7cf 100644
+--- a/src/winemetal/unix/winemetal_unix.c
++++ b/src/winemetal/unix/winemetal_unix.c
+@@ -296,7 +296,16 @@ _MTLCopyAllDevices(void *obj) {
+     params->ret = (wmtr_call(RM_OP_COPY_ALL_DEVICES, 0, 0, &r, sizeof r, 0) == RM_OK) ? r.handle : 0;
+     return STATUS_SUCCESS;
+   }
+-  params->ret = (obj_handle_t)MTLCopyAllDevices();
++  /* MTLCopyAllDevices exists on iOS only from 18.0 (weak-imported: NULL on
++   * iOS 16). Below that, the one device there is, as a +1 array. */
++  if (@available(macOS 10.11, iOS 18.0, *)) {
++    params->ret = (obj_handle_t)MTLCopyAllDevices();
++  } else {
++    id<MTLDevice> device = MTLCreateSystemDefaultDevice();
++    params->ret = (obj_handle_t)(device ? [[NSArray alloc] initWithObjects:&device count:1]
++                                        : [[NSArray alloc] init]);
++    [device release];
++  }
+   return STATUS_SUCCESS;
+ }
+ 
+@@ -1816,7 +1825,7 @@ _MTLDevice_newMeshRenderPipelineState(void *obj) {
+ 
+   MTLPipelineOption options = MTLPipelineOptionNone;
+ #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 150000
+-  if (@available(macOS 15, *)) {
++  if (@available(macOS 15, iOS 18, *)) {
+     if (info->num_binary_archives_for_lookup && info->binary_archives_for_lookup.ptr)
+       descriptor.binaryArchives = [NSArray arrayWithObjects:(id<MTLBinaryArchive> *)info->binary_archives_for_lookup.ptr
+                                                       count:info->num_binary_archives_for_lookup];
+@@ -1830,7 +1839,7 @@ _MTLDevice_newMeshRenderPipelineState(void *obj) {
+                                                                                                     error:&err];
+   params->ret_error = (obj_handle_t)err;
+ #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 150000
+-  if (@available(macOS 15, *)) {
++  if (@available(macOS 15, iOS 18, *)) {
+     if (!err && info->binary_archive_for_serialization) {
+       [(id<MTLBinaryArchive>)info->binary_archive_for_serialization
+           addMeshRenderPipelineFunctionsWithDescriptor:descriptor
+@@ -3585,7 +3594,7 @@ _MTLDevice_newTemporalScaler(void *obj) {
+   desc.inputContentMinScale = info->input_content_min_scale;
+   desc.inputContentPropertiesEnabled = info->input_content_properties_enabled;
+   #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 150000
+-  if (@available(macOS 15, *)) {
++  if (@available(macOS 15, iOS 18, *)) {
+     desc.requiresSynchronousInitialization = info->requires_synchronous_initialization;
+   }
+   #endif

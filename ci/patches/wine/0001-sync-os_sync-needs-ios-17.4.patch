@@ -1,0 +1,22 @@
+diff --git a/dlls/ntdll/unix/sync.c b/dlls/ntdll/unix/sync.c
+index 4d0fd0e1..14403510 100644
+--- a/dlls/ntdll/unix/sync.c
++++ b/dlls/ntdll/unix/sync.c
+@@ -154,7 +154,7 @@ extern int __ulock_wake( uint32_t operation, void *addr, uint64_t wake_value );
+ static inline int futex_wait( const LONG *addr, int val, struct timespec *timeout )
+ {
+ #ifdef MAC_OS_VERSION_14_4
+-    if (__builtin_available( macOS 14.4, * ))
++    if (__builtin_available( macOS 14.4, iOS 17.4, * ))
+     {
+         /* 18446744073 seconds could overflow a uint64_t in nanoseconds */
+         if (timeout && timeout->tv_sec < 18446744073)
+@@ -193,7 +193,7 @@ static inline int futex_wait( const LONG *addr, int val, struct timespec *timeou
+ static inline int futex_wake_one( const LONG *addr )
+ {
+ #ifdef MAC_OS_VERSION_14_4
+-    if (__builtin_available( macOS 14.4, * ))
++    if (__builtin_available( macOS 14.4, iOS 17.4, * ))
+         return os_sync_wake_by_address_any( (void *)addr, 4, OS_SYNC_WAKE_BY_ADDRESS_NONE );
+ #endif
+     return __ulock_wake( UL_COMPARE_AND_WAIT, (void *)addr, 0 );
