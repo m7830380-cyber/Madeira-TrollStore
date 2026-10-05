@@ -11,5 +11,5 @@ if [ ! -f "$B/CMakeCache.txt" ]; then
         -DBUILD_TESTING=OFF -DBUILD_THUNKS=OFF -DBUILD_FEXCONFIG=OFF -DBUILD_FEX_LINUX_TESTS=OFF \
         -DTUNE_CPU=none -DENABLE_FEX_ALLOCATOR=OFF -DENABLE_ASSERTIONS=OFF -DENABLE_CLANG_THUNKS=ON -DENABLE_CCACHE=ON
 fi
-cmake --build "$B" --target FEXCore FEXCore_Base -j"$(sysctl -n hw.ncpu)" -- -k
+cmake --build "$B" --target FEXCore FEXCore_Base JemallocLibs -j"$(sysctl -n hw.ncpu)" -- -k
 ls "$B/FEXCore/Source/"*.a
