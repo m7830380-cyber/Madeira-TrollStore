@@ -1,8 +1,22 @@
 diff --git a/FEXCore/Source/Interface/Core/Core.cpp b/FEXCore/Source/Interface/Core/Core.cpp
-index be54311..fd94443 100644
+index be54311..1e727ce 100644
 --- a/FEXCore/Source/Interface/Core/Core.cpp
 +++ b/FEXCore/Source/Interface/Core/Core.cpp
-@@ -1464,6 +1464,10 @@ uintptr_t ContextImpl::CompileBlock(FEXCore::Core::CpuStateFrame* Frame, uint64_
+@@ -76,6 +76,13 @@ struct rpm_cas_snapshot {
+   unsigned int block_count, block_used, is_full, which_loop;
+ };
+ int rpm_cas_snapshot_take(struct rpm_cas_snapshot* out);
++#ifndef FEX_IOS_HOST
++// iOS 16 port: rpmalloc's CAS snapshot exists only in the PE module builds;
++// the native iOS FEXCore archive reports "no snapshot".
++int rpm_cas_snapshot_take(struct rpm_cas_snapshot*) {
++  return 0;
++}
++#endif
+ }
+ #include <condition_variable>
+ #include <fcntl.h>
+@@ -1464,6 +1471,10 @@ uintptr_t ContextImpl::CompileBlock(FEXCore::Core::CpuStateFrame* Frame, uint64_
    }
  #endif
  
@@ -13,7 +27,7 @@ index be54311..fd94443 100644
    /* iOS-Madeira ml304 (task #51): REPORT CallbackPtr ENTRY ON ITS OWN, not via the bogus-RIP path.
     *
     * ml302 proved the JITCallback prologue writes the bad State.rip, and ml303 added an LR witness --
-@@ -1515,6 +1519,8 @@ uintptr_t ContextImpl::CompileBlock(FEXCore::Core::CpuStateFrame* Frame, uint64_
+@@ -1515,6 +1526,8 @@ uintptr_t ContextImpl::CompileBlock(FEXCore::Core::CpuStateFrame* Frame, uint64_
      }
    }
  

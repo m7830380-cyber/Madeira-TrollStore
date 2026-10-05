@@ -101,7 +101,7 @@ jobs:
 
       - name: Build
         if: steps.cache.outputs.cache-hit != 'true'
-        run: ci/build-native.sh freetype gnutls ffmpeg wine ntdll wineserver win32u fex rppairing
+        run: ci/build-native.sh freetype gnutls ffmpeg wine ntdll wineserver win32u fex rppairing verify
 
       - name: Pack
         if: steps.cache.outputs.cache-hit != 'true'

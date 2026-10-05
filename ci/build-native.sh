@@ -43,6 +43,11 @@ stage_freetype() {
 stage_gnutls() {
     log "GMP / Nettle / GnuTLS"
     bash "$R/build/gnutls-ios/build.sh"
+    # The script installs into toolchains/gnutls-ios only; the app links the
+    # copies in app/Madeira (tracked, built for iOS 17), so replace them.
+    for l in gmp nettle hogweed gnutls; do
+        cp "$TC/gnutls-ios/lib/lib$l.a" "$R/app/Madeira/lib$l.a"
+    done
 }
 
 stage_ffmpeg() {
@@ -197,6 +202,22 @@ for d in "$R"/ci/patches/*/; do
         fi
     done
 done
+
+# Every archive the app links must target iOS <= $MADEIRA_IOS_MIN: a newer
+# object links with only a warning and can then use APIs iOS 16 lacks.
+stage_verify() {
+    log "deployment targets of the linked archives"
+    local bad=0 f v
+    for f in "$R"/app/Madeira/lib*.a "$R"/FEX/build-ios/FEXCore/Source/*.a; do
+        [ -f "$f" ] || continue
+        v=$(otool -l "$f" 2>/dev/null | awk '$1=="minos"{print $2} $1=="version" && prev=="LC_VERSION_MIN_IPHONEOS"{print $2} {prev=$2}' | sort -uV | tail -1)
+        printf '  %-28s %s\n' "$(basename "$f")" "${v:-?}"
+        if [ -n "$v" ] && [ "$(printf '%s\n%s\n' "$v" "$MADEIRA_IOS_MIN" | sort -V | tail -1)" != "$MADEIRA_IOS_MIN" ]; then
+            echo "    ^ newer than iOS $MADEIRA_IOS_MIN"; bad=1
+        fi
+    done
+    [ $bad -eq 0 ]
+}
 
 STAGES=("$@")
 [ ${#STAGES[@]} -gt 0 ] || STAGES=(freetype gnutls ffmpeg wine ntdll wineserver win32u fex llvm dxmt rppairing)
