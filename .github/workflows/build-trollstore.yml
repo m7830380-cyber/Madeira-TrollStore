@@ -38,6 +38,15 @@ jobs:
           sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
           xcodebuild -version
           xcodebuild -downloadComponent MetalToolchain || true
+      - name: FEX generated headers only
+        run: |
+          brew install ccache || true
+          cmake -S FEX -B FEX/build-ios -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_SYSTEM_PROCESSOR=arm64 \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_DEPLOYMENT_TARGET=$MADEIRA_IOS_MIN \
+            -DCMAKE_BUILD_TYPE=Release -DTUNE_CPU=none -DBUILD_TESTING=OFF -DBUILD_THUNKS=OFF -DBUILD_FEXCONFIG=OFF \
+            -DBUILD_FEX_LINUX_TESTS=OFF -DENABLE_FEX_ALLOCATOR=OFF -DENABLE_ASSERTIONS=OFF > fex-configure.log 2>&1 \
+            || { tail -40 fex-configure.log; exit 0; }
+          cmake --build FEX/build-ios --target IR_INC CONFIG_INC || true
       - name: Compile
         run: |
           mkdir -p app/Madeira/x86_64-vcruntime   # Microsoft's runtime is not redistributed here
