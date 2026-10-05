@@ -88,6 +88,18 @@ stage_wine() {
     ln -sfn build-arm64ec "$R/wine/build-macos"
 }
 
+# ARM64EC Windows modules the bundle lacks (installed into
+# app/Madeira/arm64ec-windows): comctl32_v6, Common Controls 6.0 for 64-bit
+# programs. Upstream seeds the side-by-side store only for 32-bit processes,
+# so an x64 program whose manifest asks for Common Controls 6 got comctl32 5
+# and aborted at its first v6-only call (TaskDialogIndirect).
+stage_pe64() {
+    log "ARM64EC modules: comctl32_v6"
+    mingw_toolchain
+    JOBS="$JOBS" bash "$R/build/wine-pe/build-modules.sh" comctl32_v6
+    test -f "$R/app/Madeira/arm64ec-windows/comctl32_v6.dll"
+}
+
 # 32-bit programs (WoW64, docs/WOW64.md): the i386 Windows farm in
 # app/Madeira/i386-windows (every i386 Wine module plus DXMT's 32-bit
 # d3d9/d3d10core/d3d11/dxgi/winemetal). Without it the launcher treats an i386
