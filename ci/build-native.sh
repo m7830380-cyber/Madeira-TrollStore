@@ -111,7 +111,6 @@ stage_pe64() {
     bash "$R/build/wine-pe/build-ntdll.sh"
     echo "ntdll.dll: shipped $before bytes, rebuilt $(wc -c < "$R/app/Madeira/arm64ec-windows/ntdll.dll") bytes"
 }
-}
 
 # 32-bit programs (WoW64, docs/WOW64.md): the i386 Windows farm in
 # app/Madeira/i386-windows (every i386 Wine module plus DXMT's 32-bit
