@@ -1,0 +1,124 @@
+diff --git a/src/airconv/metallib_writer.cpp b/src/airconv/metallib_writer.cpp
+index ec97552..94311ee 100644
+--- a/src/airconv/metallib_writer.cpp
++++ b/src/airconv/metallib_writer.cpp
+@@ -1,11 +1,47 @@
+ #include "metallib_writer.hpp"
+ #include "llvm/Bitcode/BitcodeWriter.h"
+ #include "llvm/IR/Constants.h"
++#include "llvm/IR/Module.h"
++#include <cstdlib>
++#include <sys/sysctl.h>
+ 
+ using namespace llvm;
+ 
+ namespace dxmt::metallib {
+ 
++/* Madeira iOS 16 (TrollStore fork): iOS 16's Metal loads AIR 2.5 / Metal 3.0
++ * libraries at most, and airconv stamps AIR 2.6-2.7 / Metal 3.1-3.2 with
++ * macOS triples. On iOS < 17 every library is restamped as AIR 2.5 / Metal
++ * 3.0 for iOS 16 just before it is serialised. DXMT_LEGACY_AIR=0/1 overrides. */
++static bool legacy_air() {
++  static int cached = -1;
++  if (cached < 0) {
++    const char *e = getenv("DXMT_LEGACY_AIR");
++    if (e && (e[0] == '0' || e[0] == '1')) {
++      cached = e[0] == '1';
++    } else {
++      char v[32] = {0};
++      size_t n = sizeof(v) - 1;
++      int major = sysctlbyname("kern.osproductversion", v, &n, NULL, 0) == 0 ? atoi(v) : 0;
++      cached = major > 0 && major < 17;
++    }
++  }
++  return cached == 1;
++}
++
++static void restamp_legacy(Module &module) {
++  auto &context = module.getContext();
++  auto u32_md = [&](uint32_t v) { return ConstantAsMetadata::get(ConstantInt::get(context, APInt{32, v})); };
++  module.setTargetTriple("air64-apple-ios16.0.0");
++  if (auto *md = module.getNamedMetadata("air.version"))
++    module.eraseNamedMetadata(md);
++  if (auto *md = module.getNamedMetadata("air.language_version"))
++    module.eraseNamedMetadata(md);
++  module.getOrInsertNamedMetadata("air.version")->addOperand(MDTuple::get(context, {u32_md(2), u32_md(5), u32_md(0)}));
++  module.getOrInsertNamedMetadata("air.language_version")
++      ->addOperand(MDTuple::get(context, {MDString::get(context, "Metal"), u32_md(3), u32_md(0), u32_md(0)}));
++}
++
+ template <typename T> std::string_view value(const T &value) {
+   return std::string_view((const char *)(&value), sizeof(T));
+ };
+@@ -26,6 +62,11 @@ void MetallibWriter::Write(const llvm::Module &module, raw_ostream &OS) {
+ 
+   uint32_t fn_count = 0;
+ 
++  const bool legacy = legacy_air();
++  if (legacy)
++    restamp_legacy(const_cast<llvm::Module &>(module));
++  const uint16_t air_minor = legacy ? 5 : 6, lang_minor = legacy ? 0 : 1;
++
+   raw_svector_ostream bitcode_stream(bitcode);
+   WriteBitcodeToFile(module, bitcode_stream, false, nullptr, true);
+ 
+@@ -62,9 +103,9 @@ void MetallibWriter::Write(const llvm::Module &module, raw_ostream &OS) {
+         });
+         function_def_stream << value(MTLB_VERS_TAG{
+           .airVersionMajor = 2,
+-          .airVersionMinor = 6,
++          .airVersionMinor = air_minor,
+           .languageVersionMajor = 3,
+-          .languageVersionMinor = 1,
++          .languageVersionMinor = lang_minor,
+         });
+         while (fn->getNumOperands() > 3 && isa<MDTuple>(fn->getOperand(3).get())
+         ) {
+@@ -181,9 +222,9 @@ void MetallibWriter::Write(const llvm::Module &module, raw_ostream &OS) {
+         });
+         function_def_stream << value(MTLB_VERS_TAG{
+           .airVersionMajor = 2,
+-          .airVersionMinor = 6,
++          .airVersionMinor = air_minor,
+           .languageVersionMajor = 3,
+-          .languageVersionMinor = 1,
++          .languageVersionMinor = lang_minor,
+         });
+         function_def_stream << "ENDT";
+         public_metadata_stream << value(4);
+@@ -215,9 +256,9 @@ void MetallibWriter::Write(const llvm::Module &module, raw_ostream &OS) {
+         });
+         function_def_stream << value(MTLB_VERS_TAG{
+           .airVersionMajor = 2,
+-          .airVersionMinor = 6,
++          .airVersionMinor = air_minor,
+           .languageVersionMajor = 3,
+-          .languageVersionMinor = 1,
++          .languageVersionMinor = lang_minor,
+         });
+         function_def_stream << "ENDT";
+ 
+@@ -309,9 +350,9 @@ void MetallibWriter::Write(const llvm::Module &module, raw_ostream &OS) {
+         });
+         function_def_stream << value(MTLB_VERS_TAG{
+           .airVersionMajor = 2,
+-          .airVersionMinor = 6,
++          .airVersionMinor = air_minor,
+           .languageVersionMajor = 3,
+-          .languageVersionMinor = 1,
++          .languageVersionMinor = lang_minor,
+         });
+         function_def_stream << "ENDT";
+ 
+@@ -350,9 +391,9 @@ void MetallibWriter::Write(const llvm::Module &module, raw_ostream &OS) {
+         });
+         function_def_stream << value(MTLB_VERS_TAG{
+           .airVersionMajor = 2,
+-          .airVersionMinor = 6,
++          .airVersionMinor = air_minor,
+           .languageVersionMajor = 3,
+-          .languageVersionMinor = 1,
++          .languageVersionMinor = lang_minor,
+         });
+         function_def_stream << "ENDT";
+ 

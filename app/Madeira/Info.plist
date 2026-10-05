@@ -46,6 +46,7 @@
 	<array>
 		<string>stikdebug</string>
 		<string>stikjit</string>
+		<string>apple-magnifier</string>
 		<string>localdevvpn</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>

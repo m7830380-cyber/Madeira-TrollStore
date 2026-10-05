@@ -72,7 +72,7 @@ jobs:
         id: key
         run: |
           subs=$(git submodule status --recursive | awk '{print $1 $2}' | shasum -a 256 | cut -c1-16)
-          echo "key=native-v1-${MADEIRA_IOS_MIN}-${subs}-${{ hashFiles('build/**', 'ci/build-native.sh') }}" >> "$GITHUB_OUTPUT"
+          echo "key=native-v1-${MADEIRA_IOS_MIN}-${subs}-${{ hashFiles('build/**', 'ci/build-native.sh', 'ci/patches/**') }}" >> "$GITHUB_OUTPUT"
 
       - name: Restore native libraries
         id: native-cache

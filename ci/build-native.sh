@@ -127,6 +127,9 @@ stage_llvm() {
 
 stage_dxmt() {
     log "DXMT unix + airconv, libdxmt_combined.a"
+    # iOS 16 loads Metal 3.0 libraries at most (see ci/patches/dxmt).
+    export DXMT_METAL_STD="${DXMT_METAL_STD:-metal3.0}" DXMT_METAL_SDK=iphoneos \
+           DXMT_METAL_TARGET="air64-apple-ios$MADEIRA_IOS_MIN"
     "$R/build/dxmt-ios/build.sh" || { dump_errs "$R/build/dxmt-ios/obj"; exit 1; }
     # The combined archive: DXMT's objects plus the LLVM libraries airconv uses.
     # Not scripted upstream ("build it before deploying"); libtool -static
@@ -142,6 +145,17 @@ stage_rppairing() {
     rustup target add aarch64-apple-ios
     "$R/build/rppairing-ios/build.sh"
 }
+
+# Madeira's submodules are upstream forks we do not own; this port's changes
+# to them are patches applied here.
+for d in "$R"/ci/patches/*/; do
+    sub=$(basename "$d")
+    for p in "$d"*.patch; do
+        if git -C "$R/$sub" apply --check "$p" 2>/dev/null; then
+            git -C "$R/$sub" apply "$p" && echo "applied $sub/$(basename "$p")"
+        fi
+    done
+done
 
 STAGES=("$@")
 [ ${#STAGES[@]} -gt 0 ] || STAGES=(freetype gnutls ffmpeg wine ntdll wineserver win32u fex llvm dxmt rppairing)

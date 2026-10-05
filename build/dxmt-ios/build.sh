@@ -237,9 +237,9 @@ if [ ! -f "$BUILD_DIR/shader-headers/dxmt_command.h" ] \
    || [ "$0" -nt "$BUILD_DIR/shader-headers/dxmt_command.h" ]; then
     mkdir -p "$BUILD_DIR/shader-headers"
     (cd "$BUILD_DIR/shader-headers" \
-     && xcrun -sdk macosx metal -std="$DXMT_METAL_STD" --target=air64-apple-macos14.0 \
+     && xcrun -sdk "${DXMT_METAL_SDK:-macosx}" metal -std="$DXMT_METAL_STD" --target="${DXMT_METAL_TARGET:-air64-apple-macos14.0}" \
           -o dxmt_command.air -c "$DXMT_SRC/dxmt/dxmt_command.metal" \
-     && xcrun -sdk macosx metallib -o dxmt_command.metallib dxmt_command.air \
+     && xcrun -sdk "${DXMT_METAL_SDK:-macosx}" metallib -o dxmt_command.metallib dxmt_command.air \
      && xxd -n dxmt_command -i dxmt_command.metallib dxmt_command.h)
     echo "  dxmt_command.h                           OK (-std=$DXMT_METAL_STD)"
 else
