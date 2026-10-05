@@ -1,0 +1,48 @@
+diff --git a/FEXCore/Source/Interface/Core/Core.cpp b/FEXCore/Source/Interface/Core/Core.cpp
+index be54311..fd94443 100644
+--- a/FEXCore/Source/Interface/Core/Core.cpp
++++ b/FEXCore/Source/Interface/Core/Core.cpp
+@@ -1464,6 +1464,10 @@ uintptr_t ContextImpl::CompileBlock(FEXCore::Core::CpuStateFrame* Frame, uint64_
+   }
+ #endif
+ 
++#ifdef FEX_IOS_HOST
++  /* iOS 16 port: the reporters below read IosCbEntryLog / IosFfsBypassLog,
++   * declared only for the FEX_IOS_HOST (PE module) builds above. The native
++   * iOS FEXCore archive (build/fex-ios) is not one of them. */
+   /* iOS-Madeira ml304 (task #51): REPORT CallbackPtr ENTRY ON ITS OWN, not via the bogus-RIP path.
+    *
+    * ml302 proved the JITCallback prologue writes the bad State.rip, and ml303 added an LR witness --
+@@ -1515,6 +1519,8 @@ uintptr_t ContextImpl::CompileBlock(FEXCore::Core::CpuStateFrame* Frame, uint64_
+     }
+   }
+ 
++#endif
++
+   /* iOS-Madeira: refuse to compile obviously-invalid guest RIPs. After a
+    * NULL-vtable virtual call (`call [rax+8]` with rax=0), control flow
+    * lands at RIP=0x8, which then loops compiling thousands of garbage
+diff --git a/FEXCore/Source/Utils/ArchHelpers/Arm64.cpp b/FEXCore/Source/Utils/ArchHelpers/Arm64.cpp
+index b2eca70..580e660 100644
+--- a/FEXCore/Source/Utils/ArchHelpers/Arm64.cpp
++++ b/FEXCore/Source/Utils/ArchHelpers/Arm64.cpp
+@@ -704,6 +704,7 @@ static void IosLogUnimplementedCASPAL(uint32_t Size, uint64_t* GPRs, uint32_t Ad
+    * which we DUAL-MAP (RW alias + RX alias). Aliased mappings are exactly where atomics
+    * can fault despite correct alignment. Report what the region actually is, so "guest
+    * data in a dual-mapped pool page" is distinguishable from ordinary private memory. */
++#ifdef _WIN32
+   MEMORY_BASIC_INFORMATION mbi {};
+   const char* type = "?";
+   if (VirtualQuery(reinterpret_cast<LPCVOID>(GPRs[AddressReg]), &mbi, sizeof(mbi))) {
+@@ -714,6 +715,11 @@ static void IosLogUnimplementedCASPAL(uint32_t Size, uint64_t* GPRs, uint32_t Ad
+                     Size, AddressReg, GPRs[AddressReg], GPRs[AddressReg] & 15,
+                     (GPRs[AddressReg] & 15) ? "yes" : "no", mbi.BaseAddress, mbi.RegionSize,
+                     mbi.Protect, type, mbi.State);
++#else
++  // iOS 16 port: the native iOS FEXCore archive has no VirtualQuery.
++  LogMan::Msg::EFmt("[caspal128] MISALIGNED-UNSUPPORTED Size={} addrReg=x{} addr={:#x} misalign={}",
++                    Size, AddressReg, GPRs[AddressReg], GPRs[AddressReg] & 15);
++#endif
+ }
+ 
+ static bool HandleCASPAL(uint32_t Instr, uint64_t* GPRs, uint32_t* StrictSplitLockMutex) {
