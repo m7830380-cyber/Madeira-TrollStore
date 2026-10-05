@@ -1221,7 +1221,7 @@ struct LibraryLargeTitle: ToolbarContent {
         if #available(iOS 26.0, *) {
             ToolbarItem(placement: .topBarLeading) { LibraryTitleText() }.sharedBackgroundVisibility(.hidden)
         } else {
-            ToolbarItem(placement: .topBarLeading) { LibraryTitleText() }
+            ToolbarItem(placement: .navigationBarLeading) { LibraryTitleText() }
         }
     }
 }
@@ -1241,7 +1241,7 @@ struct LibraryTitleText: View {
             Image(systemName: jit ? "bolt.fill" : "bolt")
                 .font(.system(size: LibraryHeaderAlignment.titleFont().pointSize * 0.53, weight: .thin))
                 .foregroundStyle(jit ? Color.accentColor : Color.primary)
-                .contentTransition(.symbolEffect(.replace))
+                .symbolReplaceTransition()
                 .alignmentGuide(.firstTextBaseline) { d in d.height / 2 + LibraryHeaderAlignment.titleFont().capHeight / 2 }
                 .accessibilityLabel(jit ? "JIT enabled" : "JIT not enabled")
         }
@@ -1433,7 +1433,7 @@ struct LibraryNavSearch: UIViewControllerRepresentable {
             let layer = bar.layer
             let now = layer.convertTime(CACurrentMediaTime(), from: nil)
             let squeezed = 0.985, inTime = 0.12
-            let back = CASpringAnimation(perceptualDuration: 0.5, bounce: 0.5)
+            let back = CASpringAnimation.compat(perceptualDuration: 0.5, bounce: 0.5)
             back.keyPath = "transform.scale"
             back.fromValue = squeezed
             back.toValue = 1
@@ -1755,7 +1755,7 @@ struct AmbientGlow: View {
             // In the dark the light adds to the page (plusLighter): a very bright artwork's
             // light is brought down at the top (AmbientGlow.metal) so it does not glare.
             // ml1219: off on a light page, where a knee of 0 left every pixel as it was.
-            .colorEffect(ShaderLibrary.ambientKnee(.float(0.3)), isEnabled: dark)
+            .ambientKneeEffect(isEnabled: dark)
             .mask { AmbientMovie.mask(f.light) }
             .mask {
                 let turn = reduceMotion ? 0 : 1.2 * sin(t * 0.12 + Double(seed % 97))
@@ -1909,9 +1909,8 @@ struct LiquidMetalFill: View {
             TimelineView(.animation(minimumInterval: 1.0 / 60, paused: reduceMotion)) { context in
                 // Kept small, so the shader's float time stays precise.
                 let time = Float(context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600))
-                Rectangle()
-                    .colorEffect(ShaderLibrary.liquidMetal(.float2(geometry.size), .float(reduceMotion ? 0 : time),
-                                                           .float(Float(displayScale)), .float(scheme == .light ? 1 : 0)))
+                LiquidMetalFill(size: geometry.size, time: reduceMotion ? 0 : time,
+                                displayScale: Float(displayScale), light: scheme == .light)
             }
         }
         .allowsHitTesting(false)
@@ -2188,7 +2187,7 @@ struct LibraryView: View {
         }
     }
     @ToolbarContentBuilder private var libraryToolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: .navigationBarTrailing) {
             Menu {
                 Picker("Library layout", selection: $layout) {
                     Label("Cards", systemImage: "square.grid.2x2").tag("cards")
@@ -2204,10 +2203,10 @@ struct LibraryView: View {
                 }
             } label: { Label("Library options", systemImage: "line.3.horizontal.decrease") }
         }
-        ToolbarItem(placement: .topBarTrailing) { Button { browser = true } label: { Label("Add executable", systemImage: "plus") } }
+        ToolbarItem(placement: .navigationBarTrailing) { Button { browser = true } label: { Label("Add executable", systemImage: "plus") } }
     }
     @ToolbarContentBuilder private var settingsToolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: .navigationBarTrailing) {
             Button(action: enableJIT) {
                 HStack(spacing: 6) {
                     Text("Enable JIT")
@@ -3731,7 +3730,7 @@ struct LibraryLiveLogs: View {
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: max(0, geo.size.height - 16), alignment: .topLeading)
-            }.defaultScrollAnchor(.bottom).padding(8)
+            }.defaultScrollAnchorBottom().padding(8)
         }.background(.black.opacity(0.65), in: RoundedRectangle(cornerRadius: 10)).foregroundStyle(.white)
             .accessibilityLabel("Live diagnostic log")
     }
@@ -3976,5 +3975,66 @@ enum EndedSessionSurface {
         hiddenByUs = false
         _ = winios_compositor_set_hidden(0)
         LogStore.shared.log("[library-surface] desktop shown for the new session")
+    }
+}
+
+
+// MARK: - iOS 16 compatibility (TrollStore fork)
+// iOS 17 SwiftUI/Core Animation API with a plain fallback on iOS 16.
+
+extension View {
+    @ViewBuilder func symbolReplaceTransition() -> some View {
+        if #available(iOS 17.0, *) { contentTransition(.symbolEffect(.replace)) } else { self }
+    }
+
+    /// AmbientGlow.metal's knee; shader effects need iOS 17.
+    @ViewBuilder func ambientKneeEffect(isEnabled: Bool) -> some View {
+        if #available(iOS 17.0, *) {
+            colorEffect(ShaderLibrary.ambientKnee(.float(0.3)), isEnabled: isEnabled)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder func defaultScrollAnchorBottom() -> some View {
+        if #available(iOS 17.0, *) { defaultScrollAnchor(.bottom) } else { self }
+    }
+}
+
+/// LiquidMetal.metal on iOS 17 and later; a brushed-metal gradient on iOS 16.
+struct LiquidMetalFill: View {
+    let size: CGSize
+    let time: Float
+    let displayScale: Float
+    let light: Bool
+
+    var body: some View {
+        if #available(iOS 17.0, *) {
+            Rectangle()
+                .colorEffect(ShaderLibrary.liquidMetal(.float2(size), .float(time),
+                                                       .float(displayScale), .float(light ? 1 : 0)))
+        } else {
+            let tones: [Color] = light
+                ? [Color(white: 0.78), Color(white: 0.95), Color(white: 0.72), Color(white: 0.9)]
+                : [Color(white: 0.18), Color(white: 0.42), Color(white: 0.14), Color(white: 0.32)]
+            Rectangle().fill(LinearGradient(colors: tones, startPoint: .topLeading, endPoint: .bottomTrailing))
+        }
+    }
+}
+
+extension CASpringAnimation {
+    static func compat(perceptualDuration: TimeInterval, bounce: CGFloat) -> CASpringAnimation {
+        if #available(iOS 17.0, *) {
+            return CASpringAnimation(perceptualDuration: perceptualDuration, bounce: bounce)
+        }
+        // The same spring in physical terms (mass 1): stiffness from the period,
+        // damping from the bounce, as SwiftUI's Spring(duration:bounce:) defines them.
+        let a = CASpringAnimation()
+        a.mass = 1
+        let period = CGFloat(perceptualDuration)
+        a.stiffness = pow(2 * .pi / period, 2)
+        a.damping = 4 * .pi * (1 - bounce) / period
+        a.duration = a.settlingDuration
+        return a
     }
 }
