@@ -1,0 +1,30 @@
+diff --git a/Source/Windows/Common/CRT/CRT_iOS.cpp b/Source/Windows/Common/CRT/CRT_iOS.cpp
+index f5195e3..f46788b 100644
+--- a/Source/Windows/Common/CRT/CRT_iOS.cpp
++++ b/Source/Windows/Common/CRT/CRT_iOS.cpp
+@@ -21,10 +21,23 @@
+ // ctors/TLS to mingw.
+ #include <rpmalloc/rpmalloc.h>
+ 
++// mingw's constructor runner (gccmain.c): runs the .ctors list once and is a
++// no-op afterwards.
++extern "C" void __main(void);
++
+ namespace FEX::Windows {
+ void InitCRTProcess() {
+-  // mingw's default startup already ran the C++ ctors. Ensure the rpmalloc
+-  // global heap is up (idempotent) before any per-thread init below.
++  // Run the C++ constructors now. For the ARM64EC module mingw's
++  // DllMainCRTStartup has already done it and this is a no-op, but wow64.dll
++  // loads the WOW64 module (xtajit.dll) during process initialisation and calls
++  // BTCpuProcessInit/BTCpuThreadInit before the loader runs its DllMain. Its
++  // globals were still zero then: the zeroed std::unordered_map `Threads` (load
++  // factor 0) made BTCpuThreadInit's first emplace ask __next_prime for an
++  // impossible bucket count, which threw before this thread had TLS, and every
++  // 32-bit program died at start (the stock CRT.cpp runs _initterm here too).
++  __main();
++  // Ensure the rpmalloc global heap is up (idempotent) before any per-thread
++  // init below.
+   rpmalloc_initialize(nullptr);
+ }
+ void InitCRTThread() {

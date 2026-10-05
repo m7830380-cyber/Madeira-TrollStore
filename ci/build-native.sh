@@ -112,6 +112,21 @@ stage_pe64() {
     echo "ntdll.dll: shipped $before bytes, rebuilt $(wc -c < "$R/app/Madeira/arm64ec-windows/ntdll.dll") bytes"
 }
 
+# FEX's WOW64 module (app/Madeira/aarch64-windows/xtajit.dll), the CPU backend
+# 32-bit programs run on, rebuilt from the pinned FEX plus ci/patches/FEX
+# (0002 runs its C++ constructors in BTCpuProcessInit; without it every 32-bit
+# program died in BTCpuThreadInit). The shipped copy was built from the same
+# pinned commit (7b56800).
+stage_wow64fex() {
+    log "FEX WOW64 module (xtajit.dll)"
+    mingw_toolchain
+    grep -q '__main();' "$R/FEX/Source/Windows/Common/CRT/CRT_iOS.cpp" ||
+        { echo "ci/patches/FEX/0002 is not applied" >&2; exit 1; }
+    local before; before=$(wc -c < "$R/app/Madeira/aarch64-windows/xtajit.dll")
+    bash "$R/build/fex-wow64/build.sh"
+    echo "xtajit.dll: shipped $before bytes, rebuilt $(wc -c < "$R/app/Madeira/aarch64-windows/xtajit.dll") bytes"
+}
+
 # 32-bit programs (WoW64, docs/WOW64.md): the i386 Windows farm in
 # app/Madeira/i386-windows (every i386 Wine module plus DXMT's 32-bit
 # d3d9/d3d10core/d3d11/dxgi/winemetal). Without it the launcher treats an i386
