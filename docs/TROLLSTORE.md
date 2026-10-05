@@ -28,10 +28,22 @@ signature doesn't expire, so there's no weekly refresh.
 | JIT helper extension, StikJIT.framework | bundled | removed from the package (they need iOS 26 / 17.4) |
 | Entitlements | from the sideloader's profile | `ci/trollstore.entitlements`: `get-task-allow`, increased memory limit, extended virtual addressing, keychain group |
 | Shader libraries | Metal 3.1/3.2, AIR 2.6/2.7 | On iOS < 17, airconv stamps Metal 3.0 / AIR 2.5, the highest iOS 16 loads (`ci/patches/dxmt`). `DXMT_LEGACY_AIR=0/1` overrides this. |
-| SwiftUI | iOS 17 APIs (`@Observable`, two-value `onChange`, `ContentUnavailableView`) | iOS 16 equivalents |
+| SwiftUI | iOS 17 APIs (`@Observable`, two-value `onChange`, `ContentUnavailableView`, shader effects, symbol transitions) | iOS 16 equivalents. Shader-drawn decoration (liquid metal, the artwork glow knee) falls back to plain drawing. |
+| libc++ | whatever the iOS 26 SDK offers | Float `to_chars` (iOS 16.3), `__libcpp_verbose_abort` (16.3) and `std::pmr` (17) are defined in the app (`app/Madeira/iOS16LibcxxCompat.cpp`). CI fails if the binary imports any libc++ symbol missing from iOS 15.6's libc++ (`ci/libcxx-ios15.6-exports.txt`). |
+| Native libraries | iOS 17/18 deployment targets | All built for iOS 16.0. CI fails if any archive targets a newer iOS. |
 
 `MADEIRA_JIT_LOCAL=0/1` (in `madeira.cfg` as `env.MADEIRA_JIT_LOCAL`) forces
 the JIT mode either way.
+
+## What is verified
+
+- Every component builds from source in CI, for iOS 16.0.
+- The app binary's minimum OS is 16.0. Every system library it links
+  strongly exists on iOS 16 (iOS 17+ ones such as Symbols.framework are
+  weak), and its libc++ imports all exist on iOS 15.6.
+- The `.tipa` carries the TrollStore entitlements above.
+
+What is not verified: running on a device. See below.
 
 ## Requirements and limits
 
