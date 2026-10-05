@@ -10,6 +10,13 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-yellow?style=for-the-badge" alt="License: GPL-3.0-or-later"></a>
 </p>
 
+> [!IMPORTANT]
+> **This is the iOS 16 / TrollStore fork.** It builds Madeira for iOS 16.0+
+> (16.2 targeted), installed with TrollStore and started with **Open with JIT**.
+> No StikDebug, VPN or weekly re-signing. Builds come from GitHub Actions.
+> See **[docs/TROLLSTORE.md](docs/TROLLSTORE.md)**. Upstream:
+> [willfaust/Madeira](https://github.com/willfaust/Madeira).
+
 Madeira runs Windows PC games on an iPhone, with no jailbreak. Games run as they
 are, unmodified, inside a single iOS app.
 
