@@ -37,17 +37,17 @@ stage_freetype() {
     log "freetype $FREETYPE_TAG"
     [ -d "$R/research/freetype" ] ||
         git clone --depth 1 --branch "$FREETYPE_TAG" https://github.com/freetype/freetype.git "$R/research/freetype"
-    "$R/build/freetype-ios/build.sh"
+    bash "$R/build/freetype-ios/build.sh"
 }
 
 stage_gnutls() {
     log "GMP / Nettle / GnuTLS"
-    "$R/build/gnutls-ios/build.sh"
+    bash "$R/build/gnutls-ios/build.sh"
 }
 
 stage_ffmpeg() {
     log "FFmpeg (LGPL)"
-    "$R/build/ffmpeg/build.sh"
+    bash "$R/build/ffmpeg/build.sh"
 }
 
 stage_wine() {
@@ -74,26 +74,26 @@ stage_wine() {
 
 stage_ntdll() {
     log "ntdll unix"
-    "$R/build/ntdll-unix/build.sh" || { dump_errs "$R/build/ntdll-unix/obj"; exit 1; }
+    bash "$R/build/ntdll-unix/build.sh" || { dump_errs "$R/build/ntdll-unix/obj"; exit 1; }
     dump_errs "$R/build/ntdll-unix/obj"
     test -f "$R/app/Madeira/libntdll_unix.a"
 }
 
 stage_wineserver() {
     log "wineserver"
-    "$R/build/wineserver/build.sh" || { dump_errs "$R/build/wineserver/obj"; exit 1; }
+    bash "$R/build/wineserver/build.sh" || { dump_errs "$R/build/wineserver/obj"; exit 1; }
     test -f "$R/app/Madeira/libwineserver.a"
 }
 
 stage_win32u() {
     log "win32u unix"
-    "$R/build/win32u-unix/build.sh" || { dump_errs "$R/build/win32u-unix/obj"; exit 1; }
+    bash "$R/build/win32u-unix/build.sh" || { dump_errs "$R/build/win32u-unix/obj"; exit 1; }
     test -f "$R/app/Madeira/libwin32u_unix.a"
 }
 
 stage_fex() {
     log "FEXCore (iOS)"
-    "$R/build/fex-ios/build.sh"
+    bash "$R/build/fex-ios/build.sh"
 }
 
 stage_llvm() {
@@ -130,7 +130,7 @@ stage_dxmt() {
     # iOS 16 loads Metal 3.0 libraries at most (see ci/patches/dxmt).
     export DXMT_METAL_STD="${DXMT_METAL_STD:-metal3.0}" DXMT_METAL_SDK=iphoneos \
            DXMT_METAL_TARGET="air64-apple-ios$MADEIRA_IOS_MIN"
-    "$R/build/dxmt-ios/build.sh" || { dump_errs "$R/build/dxmt-ios/obj"; exit 1; }
+    bash "$R/build/dxmt-ios/build.sh" || { dump_errs "$R/build/dxmt-ios/obj"; exit 1; }
     # The combined archive: DXMT's objects plus the LLVM libraries airconv uses.
     # Not scripted upstream ("build it before deploying"); libtool -static
     # merges them, and the app link pulls only what it references.
@@ -143,7 +143,7 @@ stage_dxmt() {
 stage_rppairing() {
     log "rppairing (Rust)"
     rustup target add aarch64-apple-ios
-    "$R/build/rppairing-ios/build.sh"
+    bash "$R/build/rppairing-ios/build.sh"
 }
 
 # Madeira's submodules are upstream forks we do not own; this port's changes

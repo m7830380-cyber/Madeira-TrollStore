@@ -41,6 +41,7 @@ jobs:
           xcodebuild -downloadComponent MetalToolchain || true
       - name: Compile
         run: |
+          mkdir -p app/Madeira/x86_64-vcruntime   # Microsoft's runtime is not redistributed here
           set +e
           xcodebuild -project app/Madeira.xcodeproj -scheme Madeira -configuration Debug \
             -destination 'generic/platform=iOS' -derivedDataPath build/DerivedData \

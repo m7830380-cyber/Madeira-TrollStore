@@ -7,8 +7,11 @@ R="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$R/out"
 DD="$R/build/DerivedData"
 mkdir -p "$OUT"
+# Microsoft's VC++ runtime DLLs are not in the repository (docs/BUILDING.md);
+# the project expects the folder, games that need the runtime install it.
+mkdir -p "$R/app/Madeira/x86_64-vcruntime"
 
-"$R/build/stage-licenses.sh" >/dev/null 2>&1 || true
+bash "$R/build/stage-licenses.sh" >/dev/null 2>&1 || true
 
 set +e
 xcodebuild -project "$R/app/Madeira.xcodeproj" -scheme Madeira -configuration Debug \
