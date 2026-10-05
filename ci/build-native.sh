@@ -127,6 +127,17 @@ stage_wow64fex() {
     echo "xtajit.dll: shipped $before bytes, rebuilt $(wc -c < "$R/app/Madeira/aarch64-windows/xtajit.dll") bytes"
 }
 
+# Madeira Dock (docs/MADEIRA_DOCK.md): dockhost.exe starts Steam games through
+# Valve's own client. Upstream builds it but does not commit it, and without it
+# the app hides Dock entirely, so no Steam game could be started.
+stage_dock() {
+    log "Madeira Dock (dockhost.exe)"
+    mingw_toolchain
+    LLVM_MINGW="$TC/$LLVM_MINGW/bin" bash "$R/build/madeira-dock/build.sh"
+    test -f "$R/app/Madeira/arm64ec-windows/dockhost.exe"
+    test -f "$R/app/Madeira/arm64ec-windows/dock-notices.txt"
+}
+
 # 32-bit programs (WoW64, docs/WOW64.md): the i386 Windows farm in
 # app/Madeira/i386-windows (every i386 Wine module plus DXMT's 32-bit
 # d3d9/d3d10core/d3d11/dxgi/winemetal). Without it the launcher treats an i386

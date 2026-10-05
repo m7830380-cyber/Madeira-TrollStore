@@ -101,12 +101,12 @@ jobs:
 
       - name: Build
         if: steps.cache.outputs.cache-hit != 'true'
-        run: ci/build-native.sh freetype gnutls ffmpeg wine pe64 wow64fex ntdll wineserver win32u fex rppairing verify
+        run: ci/build-native.sh freetype gnutls ffmpeg wine pe64 wow64fex dock ntdll wineserver win32u fex rppairing verify
 
       - name: Pack
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          files=(app/Madeira/lib*.a app/Madeira/legal/LICENSES-rppairing-crates.txt FEX/build-ios app/Madeira/arm64ec-windows/comctl32_v6.dll app/Madeira/arm64ec-windows/ntdll.dll app/Madeira/aarch64-windows/xtajit.dll)
+          files=(app/Madeira/lib*.a app/Madeira/legal/LICENSES-rppairing-crates.txt FEX/build-ios app/Madeira/arm64ec-windows/comctl32_v6.dll app/Madeira/arm64ec-windows/ntdll.dll app/Madeira/aarch64-windows/xtajit.dll app/Madeira/arm64ec-windows/dockhost.exe app/Madeira/arm64ec-windows/dock-notices.txt)
           tar --exclude='*.o' --exclude='CMakeFiles' -cf - "${files[@]}" | zstd -T0 -19 -o native-libs.tar.zst
           ls -lh native-libs.tar.zst
 
