@@ -40,6 +40,21 @@ if [ -n "$too_new" ]; then
 fi
 echo "libc++ imports: $(echo "$imports" | wc -l | tr -d ' '), all in iOS 15.6's libc++"
 
+# Weak-imported C functions are NULL when the running iOS lacks them, so a call
+# that is not behind an iOS availability check jumps to address 0. The trap that
+# hit 16.2: __builtin_available(macOS 14.4, *) is always true on iOS. Each one
+# below was audited (its callers check iOS availability); a new one fails the
+# build until its callers are checked and it is added here.
+audited='_MTLCopyAllDevices __availability_version_check _os_sync_wait_on_address _os_sync_wait_on_address_with_timeout _os_sync_wake_by_address_all _os_sync_wake_by_address_any'
+weak_c=$(nm -m -u "$APP/Madeira" | grep "weak external" | awk '{print $4}' | grep -v '^_\$s\|^_OBJC_\|^_swift\|^__swift' | sort -u)
+unaudited=$(comm -23 <(echo "$weak_c") <(tr ' ' '\n' <<<"$audited" | sort -u))
+if [ -n "$unaudited" ]; then
+    echo "error: new weak-imported C functions (NULL on older iOS); check that their callers test iOS availability, then add them to 'audited' in ci/build-app.sh:"
+    echo "$unaudited"
+    exit 1
+fi
+echo "weak C imports: $(echo "$weak_c" | grep -c .), all audited"
+
 STAGE="$OUT/stage"
 rm -rf "$STAGE"; mkdir -p "$STAGE/Payload"
 ditto "$APP" "$STAGE/Payload/Madeira.app"
