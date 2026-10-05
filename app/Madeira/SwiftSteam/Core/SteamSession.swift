@@ -7,23 +7,23 @@
 // the owned library and downloads (docs/STEAM_LIBRARY.md): the session is
 // suspended while a game runs, and the sign-in stays in SteamSignIn.
 
+import Combine
 import Foundation
 
 /// Manages the authenticated Steam session: login, heartbeat, reconnection, message routing.
-@Observable
 @MainActor
-class SteamSession {
+class SteamSession: ObservableObject {   // iOS 16: ObservableObject, not @Observable (iOS 17)
     // MARK: - Published State
 
-    private(set) var connectionState: SteamConnectionState = .disconnected
-    private(set) var steamID: UInt64 = 0
-    private(set) var accountName: String = ""
-    private(set) var personaName: String = ""
-    private(set) var cellID: UInt32 = 0
+    @Published private(set) var connectionState: SteamConnectionState = .disconnected
+    @Published private(set) var steamID: UInt64 = 0
+    @Published private(set) var accountName: String = ""
+    @Published private(set) var personaName: String = ""
+    @Published private(set) var cellID: UInt32 = 0
     /// While true the session neither connects nor reconnects: a game session
     /// runs, and Valve's own client must be the only one logged on with this
     /// account (see `suspend()`).
-    private(set) var isSuspended = false
+    @Published private(set) var isSuspended = false
 
     // MARK: - Internal State
 

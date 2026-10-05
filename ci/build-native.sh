@@ -67,7 +67,13 @@ stage_wine() {
             { tail -80 "$B/config.log"; exit 1; }
     fi
     make -C "$B" -j"$JOBS" __tooldeps__
-    make -C "$B" -j"$JOBS" include
+    # Every IDL-generated header (wtypes.h, dwrite.h, mfobjects.h, ...): `make
+    # include` is a no-op because the directory exists. -k: a few .idl files
+    # make no header.
+    local hdrs
+    hdrs=$(cd "$R/wine/include" && ls *.idl | sed 's|\.idl$|.h|; s|^|include/|')
+    make -C "$B" -k -j"$JOBS" $hdrs >/dev/null 2>"$B/idl-headers.err" || true
+    ls "$B/include/wtypes.h" "$B/include/dwrite.h" "$B/include/mfobjects.h"
     # The unix-side scripts read the same configured tree under this name.
     ln -sfn build-arm64ec "$R/wine/build-macos"
 }
