@@ -85,8 +85,43 @@ stage_ntdll() {
     test -f "$R/app/Madeira/libntdll_unix.a"
 }
 
+# build/wineserver/build.sh patches a base libwineserver.a that no script
+# makes: build it from wine/server/*.c with the same flags (the script then
+# swaps in its patched objects and renames the colliding symbols).
+wineserver_base() {
+    local B="$R/build/wineserver" O="$R/build/wineserver/obj/base"
+    local SDK; SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+    local flags=(-arch arm64 -isysroot "$SDK" -miphoneos-version-min="$MADEIRA_IOS_MIN" -O2
+        -I"$R/wine/include" -I"$R/wine/include/wine" -I"$R/wine/build-macos/include"
+        -I"$B" -I"$R/wine/server" -I"$R/build/ntdll-unix/shims"
+        -I"$R/build/madsync" -DHAVE_LINUX_NTSYNC_H=1
+        -include "$B/config_ios.h" -include stdarg.h -include "$B/unicode_fix.h"
+        -include "$B/wineserver_ios_kill.h"
+        -DBINDIR=\"/usr/local/bin\" -DDATADIR=\"/usr/local/share\"
+        -D__WINESRC__ -DWINE_IOS=1 -Dmain=wineserver_main -Wno-implicit-function-declaration)
+    # Replaced by build.sh's patched objects, so a failure here does not matter.
+    local replaced=" request main mach unicode fd process window user class region queue mapping winstation thread sock object async event semaphore handle inproc_sync "
+    mkdir -p "$O"
+    local bad=""
+    for src in "$R"/wine/server/*.c; do
+        local n; n=$(basename "$src" .c)
+        if ! xcrun -sdk iphoneos clang "${flags[@]}" -c "$src" -o "$O/$n.o" 2>"$O/$n.err"; then
+            rm -f "$O/$n.o"
+            case "$replaced" in
+                *" $n "*) echo "  base $n: failed (replaced by build.sh)";;
+                *) echo "  base $n: FAILED"; grep -m5 "error:" "$O/$n.err"; bad="$bad $n";;
+            esac
+        fi
+    done
+    [ -z "$bad" ] || echo "WARNING: base objects that failed:$bad"
+    mkdir -p "$R/build/wineserver/obj"
+    ar rcs "$R/build/wineserver/obj/libwineserver.a" "$O"/*.o
+}
+
 stage_wineserver() {
     log "wineserver"
+    export PATH="$(brew --prefix llvm)/bin:$PATH"   # llvm-objcopy
+    [ -f "$R/build/wineserver/obj/libwineserver.a" ] || [ -f "$R/app/Madeira/libwineserver.a" ] || wineserver_base
     bash "$R/build/wineserver/build.sh" || { dump_errs "$R/build/wineserver/obj"; exit 1; }
     test -f "$R/app/Madeira/libwineserver.a"
 }

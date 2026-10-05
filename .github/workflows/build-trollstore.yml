@@ -13,8 +13,7 @@ on:
         default: false
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
 
 env:
   MADEIRA_IOS_MIN: '16.0'
@@ -58,25 +57,23 @@ jobs:
           retention-days: 5
 
   native:
-    name: Native libraries (Wine, FEX, DXMT, LLVM, FFmpeg, GnuTLS)
+    name: Native libraries (Wine, FEX, FFmpeg, GnuTLS)
     runs-on: macos-26
     timeout-minutes: 350
-    outputs:
-      key: ${{ steps.key.outputs.key }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 1
 
-      - name: Cache key for the native libraries
+      - name: Cache key
         id: key
         run: |
           subs=$(git submodule status --recursive | awk '{print $1 $2}' | shasum -a 256 | cut -c1-16)
-          echo "key=native-v1-${MADEIRA_IOS_MIN}-${subs}-${{ hashFiles('build/**', 'ci/build-native.sh', 'ci/patches/**') }}" >> "$GITHUB_OUTPUT"
+          echo "key=native-v2-${MADEIRA_IOS_MIN}-${subs}-${{ hashFiles('build/**', 'ci/build-native.sh', 'ci/patches/**') }}" >> "$GITHUB_OUTPUT"
 
       - name: Restore native libraries
-        id: native-cache
+        id: cache
         if: ${{ !inputs.rebuild_native }}
         uses: actions/cache/restore@v4
         with:
@@ -84,39 +81,28 @@ jobs:
           path: native-libs.tar.zst
 
       - name: Select Xcode
-        if: steps.native-cache.outputs.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
           xcodebuild -version
-          xcodebuild -downloadComponent MetalToolchain || true
 
       - name: Host tools
-        if: steps.native-cache.outputs.cache-hit != 'true'
-        run: brew install bison flex ninja meson ccache zstd coreutils || true
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: brew install bison flex ninja meson ccache zstd coreutils llvm || true
 
-      - name: LLVM for iOS (cache)
-        if: steps.native-cache.outputs.cache-hit != 'true'
-        id: llvm-cache
-        uses: actions/cache@v4
-        with:
-          key: llvm-ios-8dfdcc7b7-${{ env.MADEIRA_IOS_MIN }}-v1
-          path: |
-            toolchains/llvm-ios-build
-            toolchains/llvm-project/llvm/include
+      - name: Build
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: ci/build-native.sh freetype gnutls ffmpeg wine ntdll wineserver win32u fex rppairing
 
-      - name: Build native libraries
-        if: steps.native-cache.outputs.cache-hit != 'true'
-        run: ci/build-native.sh
-
-      - name: Pack native libraries
-        if: steps.native-cache.outputs.cache-hit != 'true'
+      - name: Pack
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           files=(app/Madeira/lib*.a app/Madeira/legal/LICENSES-rppairing-crates.txt FEX/build-ios)
           tar --exclude='*.o' --exclude='CMakeFiles' -cf - "${files[@]}" | zstd -T0 -19 -o native-libs.tar.zst
           ls -lh native-libs.tar.zst
 
       - name: Save native libraries
-        if: steps.native-cache.outputs.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           key: ${{ steps.key.outputs.key }}
@@ -128,9 +114,84 @@ jobs:
           path: native-libs.tar.zst
           retention-days: 7
 
+  dxmt:
+    name: DXMT + LLVM for iOS
+    runs-on: macos-26
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Cache key
+        id: key
+        run: |
+          subs=$(git submodule status dxmt | awk '{print $1}')
+          echo "key=dxmt-v2-${MADEIRA_IOS_MIN}-${subs}-${{ hashFiles('build/dxmt-ios/**', 'build/madeira-d3d12/**', 'madeira-d3d12/**', 'ci/build-native.sh', 'ci/patches/dxmt/**') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore DXMT
+        id: cache
+        if: ${{ !inputs.rebuild_native }}
+        uses: actions/cache/restore@v4
+        with:
+          key: ${{ steps.key.outputs.key }}
+          path: app/Madeira/libdxmt_combined.a
+
+      - name: Select Xcode
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          xcodebuild -version
+          xcodebuild -downloadComponent MetalToolchain || true
+
+      - name: Host tools
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: brew install ninja || true
+
+      - name: LLVM for iOS (restore)
+        if: steps.cache.outputs.cache-hit != 'true'
+        id: llvm-cache
+        uses: actions/cache/restore@v4
+        with:
+          key: llvm-ios-8dfdcc7b7-${{ env.MADEIRA_IOS_MIN }}-v1
+          path: |
+            toolchains/llvm-ios-build
+            toolchains/llvm-project/llvm/include
+
+      - name: LLVM for iOS (build)
+        if: steps.cache.outputs.cache-hit != 'true' && steps.llvm-cache.outputs.cache-hit != 'true'
+        run: ci/build-native.sh llvm
+
+      - name: LLVM for iOS (save)
+        if: steps.cache.outputs.cache-hit != 'true' && steps.llvm-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          key: llvm-ios-8dfdcc7b7-${{ env.MADEIRA_IOS_MIN }}-v1
+          path: |
+            toolchains/llvm-ios-build
+            toolchains/llvm-project/llvm/include
+
+      - name: DXMT
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: ci/build-native.sh dxmt
+
+      - name: Save DXMT
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ steps.key.outputs.key }}
+          path: app/Madeira/libdxmt_combined.a
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dxmt-lib
+          path: app/Madeira/libdxmt_combined.a
+          retention-days: 7
+
   app:
     name: Madeira.app → .tipa
-    needs: native
+    needs: [native, dxmt]
     runs-on: macos-26
     timeout-minutes: 120
     steps:
@@ -142,6 +203,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: native-libs
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dxmt-lib
+          path: app/Madeira
 
       - name: Unpack native libraries
         run: |

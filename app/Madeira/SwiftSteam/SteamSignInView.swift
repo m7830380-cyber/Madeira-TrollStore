@@ -61,13 +61,13 @@ struct SteamSignInView: View {
                 guard !steam.signedIn else { return }
                 if method == .qr { steam.beginQR() } else { focus = .account }
             }
-            .onChange(of: method) { _, value in
+            .onChange(of: method) { value in
                 steam.signInError = nil
                 guard !steam.signedIn else { return }
                 if value == .qr { steam.beginQR() } else { steam.cancelSignIn(); focus = .account }
             }
-            .onChange(of: steam.accountName) { _, name in if name != nil { dismiss() } }
-            .onChange(of: steam.guardPrompt) { _, prompt in if prompt?.codeType != nil { focus = .code } }
+            .onChange(of: steam.accountName) { name in if name != nil { dismiss() } }
+            .onChange(of: steam.guardPrompt) { prompt in if prompt?.codeType != nil { focus = .code } }
             .onDisappear { if !steam.signedIn { steam.cancelSignIn() } }
         }
     }

@@ -2369,7 +2369,7 @@ struct LibraryView: View {
                                           part: steamFirst ? .notInstalled : .all, open: { selected = $0 })
                     }
                 } else if model.entries.filter({ $0.desktop != true && $0.steamAppID == nil }).isEmpty {
-                    ContentUnavailableView("Make yourself at home", systemImage: "gamecontroller", description: Text("Copy a game's folder into Madeira › wine › drive_c with the Files app, then tap + and choose its .exe."))
+                    UnavailableNotice("Make yourself at home", systemImage: "gamecontroller", description: Text("Copy a game's folder into Madeira › wine › drive_c with the Files app, then tap + and choose its .exe."))
                 } else {
                     cells(entries, width: viewport.size.width)
                 }
@@ -2412,23 +2412,23 @@ struct LibraryView: View {
                 }
             })
         }
-        .onChange(of: model.current) { _, current in if current != nil { selected = nil } }
-        .onChange(of: model.error) { _, error in if error != nil { selected = nil } }
-        .onChange(of: model.restartNotice) { _, notice in if notice != nil { selected = nil } }
-        .onChange(of: model.jitNotice) { _, notice in if notice != nil { selected = nil } }
-        .onChange(of: model.cloudNotice) { _, notice in if notice != nil { selected = nil } }
-        .onChange(of: jit.showSetup) { _, show in if show { selected = nil } }
-        .onChange(of: model.showDetail) { _, id in
+        .onChange(of: model.current) { current in if current != nil { selected = nil } }
+        .onChange(of: model.error) { error in if error != nil { selected = nil } }
+        .onChange(of: model.restartNotice) { notice in if notice != nil { selected = nil } }
+        .onChange(of: model.jitNotice) { notice in if notice != nil { selected = nil } }
+        .onChange(of: model.cloudNotice) { notice in if notice != nil { selected = nil } }
+        .onChange(of: jit.showSetup) { show in if show { selected = nil } }
+        .onChange(of: model.showDetail) { id in
             guard let id else { return }
             model.showDetail = nil
             selected = model.entries.first { $0.id == id }
         }
-        .onChange(of: scenePhase) { _, phase in if phase == .active { model.refreshFlag() } }
+        .onChange(of: scenePhase) { phase in if phase == .active { model.refreshFlag() } }
         .onAppear {
             if focused == nil { focused = LibraryEntry.desktopID }
             GlassSkin.shared.start()   // liquid metal on the navigation bar's glass pills
         }
-        .onChange(of: focused) { _, id in
+        .onChange(of: focused) { id in
             if let id { withAnimation(UIAccessibility.isReduceMotionEnabled ? nil : .easeInOut(duration: 0.2)) { reader.scrollTo(id, anchor: .center) } }
         }
         }
@@ -3309,7 +3309,7 @@ struct RuntimeMemorySyncSettings: View {
                 if changed { Text("Restart Madeira (close it from the app switcher) for these changes to apply.").foregroundStyle(.orange) }
             }
         }
-        .onChange(of: refresh) { _, _ in
+        .onChange(of: refresh) { _ in
             poolMB = Self.intKey("pool"); vramMB = Self.intKey("vram-mb"); swapMB = Self.intKey("swap-mb")
             coverage = Self.currentCoverage(); engine = SyncEngine.current
             eco = MadeiraConfig.bool("eco", default: false)
@@ -3392,7 +3392,7 @@ struct LibraryFloatingItem: View {
         .frame(maxWidth: isMenu ? 48 : max(48, min(390, viewport.width - insets.leading - insets.trailing - 16)))
         .fixedSize(horizontal: false, vertical: true)
         .background(GeometryReader { proxy in
-            Color.clear.onAppear { measured = proxy.size }.onChange(of: proxy.size) { _, size in measured = size }
+            Color.clear.onAppear { measured = proxy.size }.onChange(of: proxy.size) { size in measured = size }
         })
         .contentShape(Rectangle())
         .highPriorityGesture(DragGesture(minimumDistance: 6, coordinateSpace: .global).updating($drag) { value, state, transaction in
@@ -3404,7 +3404,7 @@ struct LibraryFloatingItem: View {
             }
         })
         .position(center)
-        .onAppear { record(rect) }.onChange(of: rect) { _, value in record(value) }
+        .onAppear { record(rect) }.onChange(of: rect) { value in record(value) }
         .onDisappear { record(.zero) }
         .task(id: touched) {
             guard isMenu else { return }
@@ -3477,7 +3477,7 @@ struct LibraryHUD: View {
             .preferredColorScheme(.dark)
         }.ignoresSafeArea()
         .onAppear { model.saveCurrentProfile() }
-        .onChange(of: model.menu) { _, open in
+        .onChange(of: model.menu) { open in
             LibraryController.shared.configure(enabled: model.enabled, ownsInput: open)
             if !open { bindsPage = false }
             if !open { model.saveCurrentProfile() }
@@ -3763,7 +3763,7 @@ struct LibraryMetrics: View {
                 applyGPUMeter()
             }
             .onDisappear { UIDevice.current.isBatteryMonitoringEnabled = false; madeira_gpu_meter_enable(0) }
-            .onChange(of: model.overlayFields) { _, _ in applyGPUMeter() }
+            .onChange(of: model.overlayFields) { _ in applyGPUMeter() }
             .onReceive(ticks) { now in
                 let count = madeira_get_present_count(); let dt = now.timeIntervalSince(lastTime)
                 let frames = count >= lastCount ? count - lastCount : 0

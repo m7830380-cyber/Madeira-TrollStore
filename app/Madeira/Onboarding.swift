@@ -227,7 +227,7 @@ struct OnboardingView: View {
             dock.refresh()
             localDevVPNInstalled = LocalDevVPN.isInstalled
         }
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase) { phase in
             if phase == .active { localDevVPNInstalled = LocalDevVPN.isInstalled }
         }
     }

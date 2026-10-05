@@ -549,7 +549,7 @@ struct SteamGamesSection: View {
             model.refresh()
             if libraryEnabled { steam.start(); steam.reconcileSession() }
         }
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase) { phase in
             if phase == .active { model.refresh(); if libraryEnabled { steam.reconcileSession() } }
         }
         .sheet(item: $selected) { selection in
@@ -906,7 +906,7 @@ struct SteamGameSheet: View {
                         }
                     }
                 } else {
-                    ContentUnavailableView("Game unavailable", systemImage: "questionmark.square.dashed",
+                    UnavailableNotice("Game unavailable", systemImage: "questionmark.square.dashed",
                                            description: Text("Refresh your Steam library and try again."))
                 }
             }
@@ -1322,5 +1322,32 @@ struct SteamEntrySection: View {
             entry.steamProgramSource = nil
         }
         LogStore.shared.log("[steam-start] app=\(appID) launch-entries=\(options.count) programs=\(found.count) source=\(entry.steamProgramSource ?? "none")")
+    }
+}
+
+/// ContentUnavailableView on iOS 17 and later; the same layout by hand on iOS 16.
+struct UnavailableNotice: View {
+    let title: String
+    let systemImage: String
+    let description: Text
+
+    init(_ title: String, systemImage: String, description: Text) {
+        self.title = title
+        self.systemImage = systemImage
+        self.description = description
+    }
+
+    var body: some View {
+        if #available(iOS 17.0, *) {
+            ContentUnavailableView(title, systemImage: systemImage, description: description)
+        } else {
+            VStack(spacing: 12) {
+                Image(systemName: systemImage).font(.system(size: 48)).foregroundStyle(.secondary)
+                Text(title).font(.title2.bold())
+                description.font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            }
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 }

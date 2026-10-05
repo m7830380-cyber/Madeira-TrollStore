@@ -987,7 +987,7 @@ struct JoystickKeyView: View {
                             hosted = true
                         }
                     }
-                    .onChange(of: geo.frame(in: .global)) { _, f in
+                    .onChange(of: geo.frame(in: .global)) { f in
                         center = CGPoint(x: f.midX, y: f.midY)
                         JoystickPadState.shared.center = center
                     }
@@ -1296,7 +1296,7 @@ struct ContentView: View {
             // A Home Screen shortcut (madeira://play?exe=...) starts its library entry,
             // now or, from a cold start, once the library is up.
             .onReceive(ShortcutRouter.shared.$pendingExe) { _ in launchPendingShortcut() }
-            .onChange(of: library.enabled) { _, _ in launchPendingShortcut() }
+            .onChange(of: library.enabled) { _ in launchPendingShortcut() }
         }
     }
 
@@ -3802,11 +3802,11 @@ struct TouchControlsOverlay: View {
             .contentShape(Rectangle())
             .gesture(scalePinch, including: m.editing ? .all : .subviews)
             .onAppear { applyDefaultLayout(geo); configureGamepad(landscape: landscape) }
-            .onChange(of: geo.size) { _, _ in applyDefaultLayout(geo); configureGamepad(landscape: landscape) }
-            .onChange(of: m.controls) { _, _ in configureGamepad(landscape: landscape) }
-            .onChange(of: m.visible) { _, _ in configureGamepad(landscape: landscape) }
-            .onChange(of: m.editing) { _, _ in configureGamepad(landscape: landscape) }
-            .onChange(of: library.blocksGameplayTouch) { _, _ in configureGamepad(landscape: landscape) }
+            .onChange(of: geo.size) { _ in applyDefaultLayout(geo); configureGamepad(landscape: landscape) }
+            .onChange(of: m.controls) { _ in configureGamepad(landscape: landscape) }
+            .onChange(of: m.visible) { _ in configureGamepad(landscape: landscape) }
+            .onChange(of: m.editing) { _ in configureGamepad(landscape: landscape) }
+            .onChange(of: library.blocksGameplayTouch) { _ in configureGamepad(landscape: landscape) }
             .onDisappear { GamepadInput.shared.configureTouch(controls: []) }
         }
         .ignoresSafeArea()
@@ -4133,9 +4133,9 @@ struct TouchControlButton: View {
             }
         }
         .onDisappear { if control.action.isPad { padVector = .zero; isDown = false } }
-        .onChange(of: m.editing) { _, _ in if control.action.isPad { padVector = .zero; isDown = false } }
-        .onChange(of: screen) { _, _ in if control.action.isPad { padVector = .zero; isDown = false } }
-        .onChange(of: control.action) { old, new in
+        .onChange(of: m.editing) { _ in if control.action.isPad { padVector = .zero; isDown = false } }
+        .onChange(of: screen) { _ in if control.action.isPad { padVector = .zero; isDown = false } }
+        .onChange(of: control.action) { [old = control.action] new in
             if old.isPad || new.isPad { padVector = .zero; isDown = false }
         }
         .position(x: CGFloat(control.nx) * screen.width,
