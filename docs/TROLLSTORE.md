@@ -47,8 +47,8 @@ What is not verified: running on a device. See below.
 
 ## Requirements and limits
 
-- iOS 16.0 or later with TrollStore. A12 or newer; Metal 3 (needed by the
-  D3D11/D3D12 paths) needs an A13 or newer.
+- iOS 16.0 or later with TrollStore (A11 or newer). Metal 3, which the
+  D3D11/D3D12 paths need, requires an A13 or newer.
 - This port has not been tested on a device. Upstream is developed on iOS 26
   and recent Pro iPhones. Expect the same rough edges as upstream, plus
   iOS 16-specific ones, mainly in the Metal translation layers (DXMT, and
