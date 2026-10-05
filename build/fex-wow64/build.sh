@@ -16,7 +16,10 @@ if [ ! -f "$B/CMakeCache.txt" ]; then
         -DCMAKE_CXX_FLAGS=-DFEX_IOS_HOST -DCMAKE_ASM_FLAGS=-DFEX_IOS_HOST \
         -DENABLE_LTO=OFF -DENABLE_ASSERTIONS=OFF -DENABLE_JEMALLOC_GLIBC_ALLOC=OFF \
         -DBUILD_TESTING=OFF -DBUILD_FEXCONFIG=OFF -DTUNE_ARCH=generic -DTUNE_CPU=none \
-        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+        -DCMAKE_IGNORE_PREFIX_PATH="/opt/homebrew;/usr/local"
+    # ^ a Windows cross build: never take a host package (Homebrew's fmt was
+    #   found as "fmt::fmt" and broke the configure); FEX then uses External/.
 fi
 cmake --build "$B" --target wow64fex
 cp "$B/Bin/libwow64fex.dll" "$R/app/Madeira/aarch64-windows/xtajit.dll" && ls -l "$R/app/Madeira/aarch64-windows/xtajit.dll"
