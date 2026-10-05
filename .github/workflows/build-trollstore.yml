@@ -26,6 +26,9 @@ jobs:
     # Swift/ObjC compile errors without waiting hours for the native job; the
     # link step fails here by design (no native libraries).
     name: Compile check (no link)
+    # Manual runs only: the app job compiles everything too, and GitHub's macOS
+    # runners are scarce enough that a fifth job left others unassigned.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-26
     timeout-minutes: 90
     steps:
