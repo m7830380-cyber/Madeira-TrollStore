@@ -64,11 +64,8 @@ to_chars_result to_chars(char *f, char *l, float v, chars_format c, int p) { ret
 to_chars_result to_chars(char *f, char *l, double v, chars_format c, int p) { return formatted(f, l, v, c, p); }
 to_chars_result to_chars(char *f, char *l, long double v, chars_format c, int p) { return formatted(f, l, v, c, p); }
 
-#ifndef _LIBCPP_VERBOSE_ABORT_NOEXCEPT
-#define _LIBCPP_VERBOSE_ABORT_NOEXCEPT
-#endif
 // libc++ documents this function as one an application may replace.
-void __libcpp_verbose_abort(const char *format, ...) _LIBCPP_VERBOSE_ABORT_NOEXCEPT {
+void __libcpp_verbose_abort(const char *format, ...) noexcept {
     va_list ap;
     va_start(ap, format);
     vfprintf(stderr, format, ap);
