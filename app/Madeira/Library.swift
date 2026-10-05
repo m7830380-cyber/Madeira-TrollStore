@@ -1909,7 +1909,7 @@ struct LiquidMetalFill: View {
             TimelineView(.animation(minimumInterval: 1.0 / 60, paused: reduceMotion)) { context in
                 // Kept small, so the shader's float time stays precise.
                 let time = Float(context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600))
-                LiquidMetalFill(size: geometry.size, time: reduceMotion ? 0 : time,
+                LiquidMetalShaderRect(size: geometry.size, time: reduceMotion ? 0 : time,
                                 displayScale: Float(displayScale), light: scheme == .light)
             }
         }
@@ -4002,7 +4002,7 @@ extension View {
 }
 
 /// LiquidMetal.metal on iOS 17 and later; a brushed-metal gradient on iOS 16.
-struct LiquidMetalFill: View {
+struct LiquidMetalShaderRect: View {
     let size: CGSize
     let time: Float
     let displayScale: Float
