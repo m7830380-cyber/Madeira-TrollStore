@@ -17,7 +17,7 @@ index 0341e51..ae40eb5 100644
      }
  
 diff --git a/src/d3d11/d3d11_shader.cpp b/src/d3d11/d3d11_shader.cpp
-index 309d41f..6605297 100644
+index 309d41f..bdb8a86 100644
 --- a/src/d3d11/d3d11_shader.cpp
 +++ b/src/d3d11/d3d11_shader.cpp
 @@ -3,6 +3,10 @@
@@ -31,15 +31,18 @@ index 309d41f..6605297 100644
  
  namespace dxmt {
  
-@@ -61,6 +65,7 @@ public:
+@@ -61,6 +65,10 @@ public:
          return this;
  
        SM50GetCompiledBitcode(compile_result, &bitcode);
++#if defined(_WIN64)
++      // 64-bit only: on i386 the bytes sit at a 64-bit native address.
 +      library_bytes_.assign((const char *)bitcode.Data, (const char *)bitcode.Data + bitcode.Size);
++#endif
        lib_data = WMT::MakeDispatchData(bitcode.Data, bitcode.Size);
        auto library = device_->GetMTLDevice().newLibrary(lib_data, err);
  
-@@ -88,7 +93,21 @@ public:
+@@ -88,7 +96,21 @@ public:
  
    void SetIsDone(bool state) { ready_.store(state); }
  
