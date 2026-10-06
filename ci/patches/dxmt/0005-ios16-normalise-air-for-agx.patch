@@ -1,0 +1,89 @@
+diff --git a/src/airconv/metallib_writer.cpp b/src/airconv/metallib_writer.cpp
+index 0526d6e..149f4df 100644
+--- a/src/airconv/metallib_writer.cpp
++++ b/src/airconv/metallib_writer.cpp
+@@ -2,6 +2,9 @@
+ #include "llvm/Bitcode/BitcodeWriter.h"
+ #include "llvm/IR/Constants.h"
+ #include "llvm/IR/Module.h"
++#include "llvm/IR/Instructions.h"
++#include "llvm/IR/Metadata.h"
++#include "llvm/Support/VersionTuple.h"
+ #include <cstdlib>
+ #include <sys/sysctl.h>
+ 
+@@ -29,8 +32,74 @@ static bool legacy_air() {
+   return cached == 1;
+ }
+ 
++/* Rebuild a (uniqued) metadata tree without any operand equal to MDString s. */
++static Metadata *strip_md_string(LLVMContext &context, Metadata *md, StringRef s, int depth = 0) {
++  auto *node = dyn_cast_or_null<MDTuple>(md);
++  if (!node || depth > 4)
++    return md;
++  SmallVector<Metadata *, 16> ops;
++  bool changed = false;
++  for (auto &op : node->operands()) {
++    Metadata *m = op.get();
++    if (auto *str = dyn_cast_or_null<MDString>(m); str && str->getString() == s) {
++      changed = true;
++      continue;
++    }
++    Metadata *n = strip_md_string(context, m, s, depth + 1);
++    changed |= n != m;
++    ops.push_back(n);
++  }
++  return changed ? MDTuple::get(context, ops) : md;
++}
++
++/* iOS 16's GPU compiler fails every pipeline built from airconv output with
++ * "Compiler encountered an internal error", even trivial ones. Normalise what
++ * an Xcode 14 / Metal 3.0 toolchain would not have produced:
++ *  - [[invariant]] on the position output (needs preserveInvariance there),
++ *  - poison operands (undef has the same meaning for these uses),
++ *  - the mustprogress function attribute,
++ *  - an "SDK Version" of 15.0 (a macOS SDK) under an iOS 16 triple. */
++static void normalise_legacy(Module &module) {
++  auto &context = module.getContext();
++  for (const char *kind : {"air.vertex", "air.mesh"}) {
++    if (auto *fns = module.getNamedMetadata(kind)) {
++      for (unsigned i = 0; i < fns->getNumOperands(); i++) {
++        Metadata *n = strip_md_string(context, fns->getOperand(i), "air.invariant");
++        if (n != fns->getOperand(i))
++          fns->setOperand(i, cast<MDNode>(n));
++      }
++    }
++  }
++  for (auto &F : module) {
++    F.removeFnAttr(Attribute::MustProgress);
++    for (auto &BB : F) {
++      for (auto &I : BB) {
++        for (unsigned i = 0; i < I.getNumOperands(); i++) {
++          if (isa<PoisonValue>(I.getOperand(i)))
++            I.setOperand(i, UndefValue::get(I.getOperand(i)->getType()));
++        }
++        if (auto *call = dyn_cast<CallBase>(&I))
++          call->removeFnAttr(Attribute::MustProgress);
++      }
++    }
++  }
++  if (auto *flags = module.getModuleFlagsMetadata()) {
++    SmallVector<MDNode *, 16> keep;
++    for (auto *flag : flags->operands()) {
++      auto *name = flag->getNumOperands() > 1 ? dyn_cast_or_null<MDString>(flag->getOperand(1)) : nullptr;
++      if (!name || name->getString() != "SDK Version")
++        keep.push_back(flag);
++    }
++    flags->clearOperands();
++    for (auto *flag : keep)
++      flags->addOperand(flag);
++  }
++  module.setSDKVersion(VersionTuple(16, 0));
++}
++
+ static void restamp_legacy(Module &module) {
+   auto &context = module.getContext();
++  normalise_legacy(module);
+   auto u32_md = [&](uint32_t v) { return ConstantAsMetadata::get(ConstantInt::get(context, APInt{32, v})); };
+   module.setTargetTriple("air64-apple-ios16.0.0");
+   if (auto *md = module.getNamedMetadata("air.version"))
