@@ -1,0 +1,53 @@
+diff --git a/meson.build b/meson.build
+index 6979788..82b99bb 100644
+--- a/meson.build
++++ b/meson.build
+@@ -145,16 +145,22 @@ xcrun = find_program('xcrun')
+ # way (metallib_writer.cpp). -Dmetal_std overrides when the shaders grow a
+ # newer requirement.
+ metal_std = get_option('metal_std')
++# Madeira iOS 16 (TrollStore fork): the SDK and AIR target are options too. A
++# library built for macOS 14 is refused by iOS 16's Metal ("This library format
++# is not supported on this platform"); that build passes -Dmetal_sdk=iphoneos
++# -Dmetal_target=air64-apple-ios16.0 -Dmetal_std=metal3.0.
++metal_sdk = get_option('metal_sdk')
++metal_target = get_option('metal_target')
+ 
+ metalir_generator = generator(xcrun,
+   output    : [ '@BASENAME@.air'],
+-  arguments : [ '-sdk', 'macosx', 'metal', '-std=' + metal_std, '--target=air64-apple-macos14.0',
++  arguments : [ '-sdk', metal_sdk, 'metal', '-std=' + metal_std, '--target=' + metal_target,
+                 '-o', '@OUTPUT@', '-c', '@INPUT@', '@EXTRA_ARGS@'],
+ )
+ 
+ metallib_generator = generator(xcrun,
+   output    : [ '@BASENAME@.metallib'],
+-  arguments : [ '-sdk', 'macosx', 'metallib', '-o', '@OUTPUT@', '@INPUT@'],
++  arguments : [ '-sdk', metal_sdk, 'metallib', '-o', '@OUTPUT@', '@INPUT@'],
+ )
+ 
+ xxd = find_program('xxd')
+diff --git a/meson.options b/meson.options
+index 3424385..2bea101 100644
+--- a/meson.options
++++ b/meson.options
+@@ -19,3 +19,6 @@ option('enable_nvngx', type : 'boolean', value : false)
+ # meson.build). Raise it only when the shaders need a newer standard: a device
+ # refuses a library written for a version its OS does not know.
+ option('metal_std', type : 'string', value : 'metal3.1')
++# The SDK and AIR target the embedded shaders are compiled for (see meson.build).
++option('metal_sdk', type : 'string', value : 'macosx')
++option('metal_target', type : 'string', value : 'air64-apple-macos14.0')
+diff --git a/src/airconv/meson.build b/src/airconv/meson.build
+index 41f3eb0..ce30ebb 100644
+--- a/src/airconv/meson.build
++++ b/src/airconv/meson.build
+@@ -64,7 +64,7 @@ airconv_shaders = [
+ 
+ airconv_shaders_ir = metalir_generator.process(
+   airconv_shaders,
+-  extra_args: ['-std=metal3.1', '--target=air64-apple-macos14.0'],
++  extra_args: ['-std=' + metal_std, '--target=' + metal_target],
+ )
+ airconv_shaders_header = hexdump_generator.process(airconv_shaders_ir)
+ 

@@ -127,6 +127,46 @@ stage_wow64fex() {
     echo "xtajit.dll: shipped $before bytes, rebuilt $(wc -c < "$R/app/Madeira/aarch64-windows/xtajit.dll") bytes"
 }
 
+# DXMT's Windows-side DLLs for 64-bit programs (app/Madeira/arm64ec-windows:
+# d3d11, dxgi, d3d10core, winemetal), rebuilt from the pinned DXMT with its
+# embedded command library compiled for iOS 16 / Metal 3.0
+# (ci/patches/dxmt/0002). Upstream's copies embed a macOS 14 / Metal 3.1
+# library, which iOS 16 refuses ("This library format is not supported on
+# this platform"), so every Direct3D 10/11 program failed to start.
+DXMT_METAL_ARGS=(-Dmetal_std=metal3.0 -Dmetal_sdk=iphoneos "-Dmetal_target=air64-apple-ios$MADEIRA_IOS_MIN")
+stage_dxmt_pe() {
+    log "DXMT Windows-side DLLs (ARM64EC, Metal for iOS $MADEIRA_IOS_MIN)"
+    mingw_toolchain
+    local W="$R/wine/build-arm64ec" B="$R/dxmt/build-arm64ec"
+    # What DXMT's meson links against, from the configured ARM64EC Wine tree.
+    make -C "$W" -j"$JOBS" dlls/winecrt0/arm64ec-windows/libwinecrt0.a \
+        dlls/ntdll/arm64ec-windows/libntdll.a dlls/dbghelp/arm64ec-windows/libdbghelp.a
+    # The cross file names the toolchain relative to DXMT's own source root.
+    ln -sfn ../toolchains "$R/dxmt/toolchains"
+    if [ ! -f "$B/build.ninja" ]; then
+        (cd "$R/dxmt" && SDKROOT="$(xcrun --sdk macosx --show-sdk-path)" \
+            meson setup "$B" --cross-file build-arm64ec-win.txt --native-file build-osx.txt \
+                --buildtype release -Dwine_build_path="$W" "${DXMT_METAL_ARGS[@]}")
+    fi
+    local mods=(src/d3d11/d3d11.dll src/dxgi/dxgi.dll src/d3d10/d3d10core.dll src/winemetal/winemetal.dll)
+    SDKROOT="$(xcrun --sdk macosx --show-sdk-path)" ninja -C "$B" "${mods[@]}"
+    for m in "${mods[@]}"; do
+        local out="$R/app/Madeira/arm64ec-windows/$(basename "$m")"
+        echo "$(basename "$m"): shipped $(wc -c < "$out") bytes"
+        "$TC/$LLVM_MINGW/bin/arm64ec-w64-mingw32-strip" --strip-debug -o "$out" "$B/$m"
+        echo "$(basename "$m"): rebuilt $(wc -c < "$out") bytes"
+    done
+    # The command library must now be an iOS one: its platform is in the
+    # metallib header, so check the embedded copy is not the macOS build.
+    python3 - "$R/app/Madeira/arm64ec-windows/d3d11.dll" <<'PY'
+import sys
+d = open(sys.argv[1], 'rb').read()
+i = d.find(b'MTLB')
+assert i >= 0, "no embedded metallib in d3d11.dll"
+print("d3d11.dll: embedded metallib at", hex(i), "header", d[i:i+24].hex())
+PY
+}
+
 # Madeira Dock (docs/MADEIRA_DOCK.md): dockhost.exe starts Steam games through
 # Valve's own client. Upstream builds it but does not commit it, and without it
 # the app hides Dock entirely, so no Steam game could be started.
@@ -145,7 +185,8 @@ stage_dock() {
 stage_i386() {
     log "i386 Windows farm (WoW64)"
     mingw_toolchain
-    JOBS="$JOBS" bash "$R/build/wine-i386/build.sh" || {
+    # DXMT's 32-bit DLLs embed the same command library: build it for iOS too.
+    JOBS="$JOBS" DXMT_MESON_EXTRA="${DXMT_METAL_ARGS[*]}" bash "$R/build/wine-i386/build.sh" || {
         tail -60 "$R/wine/build-i386/madeira-i386-build.log" 2>/dev/null
         exit 1
     }
