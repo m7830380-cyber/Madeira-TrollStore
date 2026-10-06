@@ -139,7 +139,7 @@ stage_dxmt_pe() {
     mingw_toolchain
     local W="$R/wine/build-arm64ec" B="$R/dxmt/build-arm64ec"
     # What DXMT's meson links against, from the configured ARM64EC Wine tree.
-    make -C "$W" -j"$JOBS" dlls/winecrt0/arm64ec-windows/libwinecrt0.a \
+    make -C "$W" -j"$JOBS" libs/winecrt0/arm64ec-windows/libwinecrt0.a \
         dlls/ntdll/arm64ec-windows/libntdll.a dlls/dbghelp/arm64ec-windows/libdbghelp.a
     # The cross file names the toolchain relative to DXMT's own source root.
     ln -sfn ../toolchains "$R/dxmt/toolchains"
