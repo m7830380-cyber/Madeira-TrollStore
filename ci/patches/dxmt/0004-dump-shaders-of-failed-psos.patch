@@ -1,0 +1,77 @@
+diff --git a/src/d3d11/d3d11_pipeline.cpp b/src/d3d11/d3d11_pipeline.cpp
+index 0341e51..ae40eb5 100644
+--- a/src/d3d11/d3d11_pipeline.cpp
++++ b/src/d3d11/d3d11_pipeline.cpp
+@@ -101,6 +101,13 @@ public:
+ 
+     if (state_ == nullptr) {
+       ERR("Failed to create PSO: ", err.description().getUTF8String());
++      // Madeira iOS 16: keep the failing shaders for offline analysis.
++      static std::atomic<int> dumped{0};
++      if (dumped++ < 16) {
++        VertexShader->DumpLibrary();
++        if (PixelShader)
++          PixelShader->DumpLibrary();
++      }
+       return this;
+     }
+ 
+diff --git a/src/d3d11/d3d11_shader.cpp b/src/d3d11/d3d11_shader.cpp
+index 309d41f..6605297 100644
+--- a/src/d3d11/d3d11_shader.cpp
++++ b/src/d3d11/d3d11_shader.cpp
+@@ -3,6 +3,10 @@
+ #include "airconv_public.h"
+ #include "d3d11_input_layout.hpp"
+ #include "sha1/sha1_util.hpp"
++#include "log/log.hpp"
++#include <cstdio>
++#include <vector>
++#include <windows.h>
+ 
+ namespace dxmt {
+ 
+@@ -61,6 +65,7 @@ public:
+         return this;
+ 
+       SM50GetCompiledBitcode(compile_result, &bitcode);
++      library_bytes_.assign((const char *)bitcode.Data, (const char *)bitcode.Data + bitcode.Size);
+       lib_data = WMT::MakeDispatchData(bitcode.Data, bitcode.Size);
+       auto library = device_->GetMTLDevice().newLibrary(lib_data, err);
+ 
+@@ -88,7 +93,21 @@ public:
+ 
+   void SetIsDone(bool state) { ready_.store(state); }
+ 
++  void DumpLibrary() final {
++    if (library_bytes_.empty())
++      return;
++    CreateDirectoryA("C:\\dxmt-failed", nullptr);
++    std::string path = "C:\\dxmt-failed\\" + func_name + ".metallib";
++    FILE *f = fopen(path.c_str(), "wb");
++    if (!f)
++      return;
++    fwrite(library_bytes_.data(), 1, library_bytes_.size(), f);
++    fclose(f);
++    ERR("[pso-dump] wrote ", path, " (", library_bytes_.size(), " bytes)");
++  }
++
+ private:
++  std::vector<char> library_bytes_;
+   SM50_SHADER_COMMON_DATA sm50_common;
+   Proc proc;
+   std::string func_name;
+diff --git a/src/d3d11/d3d11_shader.hpp b/src/d3d11/d3d11_shader.hpp
+index b2cbd9f..5feb6f1 100644
+--- a/src/d3d11/d3d11_shader.hpp
++++ b/src/d3d11/d3d11_shader.hpp
+@@ -200,6 +200,9 @@ public:
+   return false if it's not ready
+    */
+   virtual bool GetShader(MTL_COMPILED_SHADER *pShaderData) = 0;
++  /* Madeira iOS 16: write this variant's metallib to C:\dxmt-failed\ (PSO
++   * compile failures). No-op when the library came from the shader cache. */
++  virtual void DumpLibrary() {}
+ };
+ 
+ class Shader {
