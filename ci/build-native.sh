@@ -310,6 +310,14 @@ for d in "$R"/ci/patches/*/; do
     for p in "$d"*.patch; do
         if git -C "$R/$sub" apply --check "$p" 2>/dev/null; then
             git -C "$R/$sub" apply "$p" && echo "applied $sub/$(basename "$p")"
+        elif git -C "$R/$sub" apply --reverse --check "$p" 2>/dev/null; then
+            echo "already applied $sub/$(basename "$p")"
+        else
+            # Never build without a patch: a silently skipped one ships the
+            # bug it fixes.
+            echo "patch does not apply: $sub/$(basename "$p")" >&2
+            git -C "$R/$sub" apply --check "$p"
+            exit 1
         fi
     done
 done

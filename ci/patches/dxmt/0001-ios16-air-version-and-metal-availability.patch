@@ -1,5 +1,5 @@
 diff --git a/src/airconv/metallib_writer.cpp b/src/airconv/metallib_writer.cpp
-index ec97552..94311ee 100644
+index ec97552..0526d6e 100644
 --- a/src/airconv/metallib_writer.cpp
 +++ b/src/airconv/metallib_writer.cpp
 @@ -1,11 +1,47 @@
@@ -122,6 +122,23 @@ index ec97552..94311ee 100644
          });
          function_def_stream << "ENDT";
  
+@@ -397,6 +438,16 @@ void MetallibWriter::Write(const llvm::Module &module, raw_ostream &OS) {
+   header.OS = OS::MTLBOS_macOS;
+   header.OSVersionMajor = 14;
+   header.OSVersionMinor = 4;
++  if (legacy) {
++    // iOS 16 also refuses a library whose header names macOS ("This library
++    // format is not supported on this platform"). These are the values Apple's
++    // own toolchain writes for -sdk iphoneos --target=air64-apple-ios16.0
++    // (platform 0x0001, OS 0x82, OS version 16.0), read off a library built so.
++    header.Platform = static_cast<Platform>(0x0001);
++    header.OS = static_cast<enum OS>(0x82);
++    header.OSVersionMajor = 16;
++    header.OSVersionMinor = 0;
++  }
+ 
+   // write to stream
+   OS << value(header);
 diff --git a/src/winemetal/unix/winemetal_unix.c b/src/winemetal/unix/winemetal_unix.c
 index db46cda..ffdf7cf 100644
 --- a/src/winemetal/unix/winemetal_unix.c
