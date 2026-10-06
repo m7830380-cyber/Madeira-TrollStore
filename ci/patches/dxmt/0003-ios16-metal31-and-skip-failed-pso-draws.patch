@@ -1,0 +1,166 @@
+diff --git a/src/d3d11/d3d11_context_impl.cpp b/src/d3d11/d3d11_context_impl.cpp
+index 1e2a92f..5162009 100644
+--- a/src/d3d11/d3d11_context_impl.cpp
++++ b/src/d3d11/d3d11_context_impl.cpp
+@@ -4974,8 +4974,9 @@ public:
+       pso->GetPipeline(&GraphicsPipeline); // may block
+       enc.tess_num_output_control_point_element = GraphicsPipeline.NumControlPointOutputElement;
+       enc.tess_threads_per_patch = GraphicsPipeline.ThreadsPerPatch;
+-      if (!GraphicsPipeline.PipelineState)
+-        return;
++      // Madeira iOS 16: a PSO that failed to compile is still emitted (as a
++      // null pso) so winemetal skips the draws that would have used it,
++      // rather than drawing with no pipeline (AGX null dereference).
+       auto &cmd = enc.encodeRenderCommand<wmtcmd_render_setpso>();
+       cmd.type = WMTRenderCommandSetPSO;
+       cmd.pso = GraphicsPipeline.PipelineState;
+@@ -5020,8 +5021,9 @@ public:
+       render_encoder->use_geometry = 1;
+       MTL_COMPILED_GRAPHICS_PIPELINE GraphicsPipeline{};
+       pso->GetPipeline(&GraphicsPipeline); // may block
+-      if (!GraphicsPipeline.PipelineState)
+-        return;
++      // Madeira iOS 16: a PSO that failed to compile is still emitted (as a
++      // null pso) so winemetal skips the draws that would have used it,
++      // rather than drawing with no pipeline (AGX null dereference).
+       auto &cmd = enc.encodeRenderCommand<wmtcmd_render_setpso>();
+       cmd.type = WMTRenderCommandSetPSO;
+       cmd.pso = GraphicsPipeline.PipelineState;
+@@ -5075,8 +5077,9 @@ public:
+     EmitST([pso = std::move(pipeline)](ArgumentEncodingContext& enc) {
+       MTL_COMPILED_GRAPHICS_PIPELINE GraphicsPipeline{};
+       pso->GetPipeline(&GraphicsPipeline); // may block
+-      if (!GraphicsPipeline.PipelineState)
+-        return;
++      // Madeira iOS 16: a PSO that failed to compile is still emitted (as a
++      // null pso) so winemetal skips the draws that would have used it,
++      // rather than drawing with no pipeline (AGX null dereference).
+       auto &cmd = enc.encodeRenderCommand<wmtcmd_render_setpso>();
+       cmd.type = WMTRenderCommandSetPSO;
+       cmd.pso = GraphicsPipeline.PipelineState;
+@@ -5240,8 +5243,7 @@ public:
+                ArgumentEncodingContext &enc) {
+       MTL_COMPILED_COMPUTE_PIPELINE ComputePipeline;
+       pso->GetPipeline(&ComputePipeline); // may block
+-      if (!ComputePipeline.PipelineState)
+-        return;
++      // Madeira iOS 16: emitted even when null; see the render PSO above.
+       auto &cmd = enc.encodeComputeCommand<wmtcmd_compute_setpso>();
+       cmd.type = WMTComputeCommandSetPSO;
+       cmd.pso = ComputePipeline.PipelineState;
+diff --git a/src/dxmt/dxmt_device.cpp b/src/dxmt/dxmt_device.cpp
+index 5b92bc4..1e91d66 100644
+--- a/src/dxmt/dxmt_device.cpp
++++ b/src/dxmt/dxmt_device.cpp
+@@ -37,7 +37,11 @@ public:
+       break;
+     }
+     WMTGetOSVersion(&macos_major_version, &macos_minor_version, nullptr);
+-    if (macos_major_version >= 15) {
++    // Madeira iOS 16: this is a macOS 15 rule, and an iPhone reports its iOS
++    // version here. macOS 16 and 17 never existed, so 16/17 are iOS 16/17,
++    // whose GPU compiler fails Metal 3.2 shaders ("Compiler encountered an
++    // internal error"). iOS 18 and later do have Metal 3.2.
++    if (macos_major_version >= 15 && macos_major_version != 16 && macos_major_version != 17) {
+       metal_version_ = std::min(WMTMetal320, metal_version_);
+     } else {
+       metal_version_ = std::min(WMTMetal310, metal_version_);
+diff --git a/src/winemetal/unix/winemetal_unix.c b/src/winemetal/unix/winemetal_unix.c
+index ffdf7cf..cd70400 100644
+--- a/src/winemetal/unix/winemetal_unix.c
++++ b/src/winemetal/unix/winemetal_unix.c
+@@ -2280,7 +2280,15 @@ _MTLComputeCommandEncoder_encodeCommands(void *obj) {
+   wmt_census_batch(next, 1);
+   id<MTLComputeCommandEncoder> encoder = (id<MTLComputeCommandEncoder>)params->encoder;
+   MTLSize threadgroup_size = {0, 0, 0};
++  /* Madeira iOS 16: a null pso means that pipeline failed to compile; its
++   * dispatches are dropped instead of running with no pipeline. */
++  bool pso_ok = true;
+   while (next) {
++    if (!pso_ok && (next->type == WMTComputeCommandDispatch || next->type == WMTComputeCommandDispatchThreads ||
++                    next->type == WMTComputeCommandDispatchIndirect)) {
++      next = next->next.ptr;
++      continue;
++    }
+     switch ((enum WMTComputeCommandType)next->type) {
+     default:
+       assert(!next->type && "unhandled compute command type");
+@@ -2306,7 +2314,9 @@ _MTLComputeCommandEncoder_encodeCommands(void *obj) {
+     }
+     case WMTComputeCommandSetPSO: {
+       struct wmtcmd_compute_setpso *body = (struct wmtcmd_compute_setpso *)next;
+-      [encoder setComputePipelineState:(id<MTLComputePipelineState>)body->pso];
++      pso_ok = body->pso != 0;
++      if (pso_ok)
++        [encoder setComputePipelineState:(id<MTLComputePipelineState>)body->pso];
+       threadgroup_size.width = body->threadgroup_size.width;
+       threadgroup_size.height = body->threadgroup_size.height;
+       threadgroup_size.depth = body->threadgroup_size.depth;
+@@ -2357,6 +2367,29 @@ _MTLComputeCommandEncoder_encodeCommands(void *obj) {
+   return STATUS_SUCCESS;
+ }
+ 
++static bool
++wmt_render_cmd_is_draw(uint32_t type) {
++  switch ((enum WMTRenderCommandType)type) {
++  case WMTRenderCommandDraw:
++  case WMTRenderCommandDrawIndexed:
++  case WMTRenderCommandDrawIndirect:
++  case WMTRenderCommandDrawIndexedIndirect:
++  case WMTRenderCommandDrawMeshThreadgroups:
++  case WMTRenderCommandDrawMeshThreadgroupsIndirect:
++  case WMTRenderCommandDXMTGeometryDraw:
++  case WMTRenderCommandDXMTGeometryDrawIndexed:
++  case WMTRenderCommandDXMTGeometryDrawIndirect:
++  case WMTRenderCommandDXMTGeometryDrawIndexedIndirect:
++  case WMTRenderCommandDXMTTessellationMeshDraw:
++  case WMTRenderCommandDXMTTessellationMeshDrawIndexed:
++  case WMTRenderCommandDXMTTessellationMeshDrawIndirect:
++  case WMTRenderCommandDXMTTessellationMeshDrawIndexedIndirect:
++    return true;
++  default:
++    return false;
++  }
++}
++
+ static NTSTATUS
+ _MTLRenderCommandEncoder_encodeCommands(void *obj) {
+   struct unixcall_generic_obj_cmd_noret *params = obj;
+@@ -2437,7 +2470,21 @@ _MTLRenderCommandEncoder_encodeCommands(void *obj) {
+   wmt_shadow_batch(next);
+   wmt_census_batch(next, 0);
+   id<MTLRenderCommandEncoder> encoder = (id<MTLRenderCommandEncoder>)params->encoder;
++  /* Madeira iOS 16: a null pso means that pipeline failed to compile. Its
++   * draws are dropped until the next valid pso: drawing with no pipeline
++   * state is a null dereference inside the AGX driver. One encoder is fed
++   * over several calls, all from the same encode thread, hence the TLS. */
++  static _Thread_local uint64_t pso_encoder;
++  static _Thread_local bool pso_ok;
++  if (pso_encoder != params->encoder) {
++    pso_encoder = params->encoder;
++    pso_ok = true;
++  }
+   while (next) {
++    if (!pso_ok && wmt_render_cmd_is_draw(next->type)) {
++      next = next->next.ptr;
++      continue;
++    }
+     switch ((enum WMTRenderCommandType)next->type) {
+     default:
+       assert(!next->type && "unhandled render command type");
+@@ -2556,7 +2603,14 @@ _MTLRenderCommandEncoder_encodeCommands(void *obj) {
+     }
+     case WMTRenderCommandSetPSO: {
+       struct wmtcmd_render_setpso *body = (struct wmtcmd_render_setpso *)next;
+-      [encoder setRenderPipelineState:(id<MTLRenderPipelineState>)body->pso];
++      pso_ok = body->pso != 0;
++      if (pso_ok) {
++        [encoder setRenderPipelineState:(id<MTLRenderPipelineState>)body->pso];
++      } else {
++        static unsigned told;
++        if (told++ < 8)
++          fprintf(stderr, "[wmt-pso] null render pipeline (compile failed) -- skipping its draws\n");
++      }
+       break;
+     }
+     case WMTRenderCommandSetDSSO: {

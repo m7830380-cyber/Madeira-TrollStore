@@ -1314,6 +1314,61 @@ static int ios_mach_emulate_cas(uint32_t insn, uintptr_t rw_addr, uint64_t gpr[2
     return 1;
 }
 
+/* iOS 16 (TrollStore fork): UNALIGNED SWP{A}{L}{H,W,X} on the RW alias.
+ *
+ * Mono's backpatcher does a LOCK XCHG on the imm64 of a `mov r11, imm64`
+ * (Cube Racer: 8 bytes at ...0x56). x86 allows that; ml626 refused it,
+ * the write never landed and the fault went UNHANDLED into the guest.
+ *
+ * With FEAT_LSE2 (every A14+/M1+ core) an LSE atomic may be unaligned as
+ * long as it stays inside one 16-byte granule, and stays single-copy
+ * atomic, so the instruction is simply re-run on the RW alias. Crossing a
+ * granule cannot be done atomically on ARM; that case is a plain
+ * read-then-write under a global lock (Mono patches under its own lock,
+ * so there is no concurrent writer to the patched bytes). Returns the old
+ * value. size_lg2 is 1..3. */
+static int ios_have_lse2(void)
+{
+    static int have = -1;
+    if (have < 0)
+    {
+        int v = 0;
+        size_t n = sizeof(v);
+        have = sysctlbyname( "hw.optional.arm.FEAT_LSE2", &v, &n, NULL, 0 ) == 0 && v;
+    }
+    return have;
+}
+
+static uint64_t ios_swp_unaligned( uintptr_t rw_addr, int size_lg2, uint64_t in, int *atomic )
+{
+    static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+    unsigned width = 1u << size_lg2;
+    uint64_t old = 0;
+
+    *atomic = ios_have_lse2() && (rw_addr & 15) + width <= 16;
+    if (*atomic)
+    {
+        switch (size_lg2)
+        {
+        case 1: { uint32_t o; __asm__ volatile( ".arch_extension lse\n\tswpalh %w2, %w0, [%1]"
+                                                : "=&r"(o) : "r"(rw_addr), "r"((uint32_t)in) : "memory" );
+                  old = (uint16_t)o; break; }
+        case 2: { uint32_t o; __asm__ volatile( ".arch_extension lse\n\tswpal %w2, %w0, [%1]"
+                                                : "=&r"(o) : "r"(rw_addr), "r"((uint32_t)in) : "memory" );
+                  old = o; break; }
+        default: __asm__ volatile( ".arch_extension lse\n\tswpal %2, %0, [%1]"
+                                   : "=&r"(old) : "r"(rw_addr), "r"(in) : "memory" );
+                 break;
+        }
+        return old;
+    }
+    pthread_mutex_lock( &lock );
+    memcpy( &old, (void *)rw_addr, width );
+    memcpy( (void *)rw_addr, &in, width );
+    pthread_mutex_unlock( &lock );
+    return old;
+}
+
 /* ml938/ml939: defined far below, next to the store emulator they reuse.
  * Declared here because the Mach exception thread is the primary caller and
  * sits earlier in the file. */
@@ -3616,23 +3671,26 @@ static void *ios_mach_exception_thread( void *arg )
                         int rt = insn & 0x1f;           /* old value lands here */
                         uint64_t align_mask = (1ULL << size_lg2) - 1;
 
-                        /* An unaligned atomic cannot be emulated atomically. Fall through
-                         * to the discriminator rather than quietly doing something weaker. */
-                        if (rw_addr & align_mask)
-                        {
-                            static int swp_unalign_n;
-                            if (swp_unalign_n < 4)
-                                dprintf(STDERR_FILENO,
-                                    "[swp-emul] ml626 #%d REFUSING unaligned atomic: insn=0x%08x size=%d "
-                                    "addr=0x%llx rw=0x%llx\n",
-                                    ++swp_unalign_n, insn, 1 << size_lg2,
-                                    (unsigned long long)fault_addr, (unsigned long long)rw_addr);
-                        }
-                        else
+                        /* Unaligned (Mono's LOCK XCHG on an imm64): ios_swp_unaligned
+                         * re-runs it atomically on the alias when it stays inside one
+                         * 16-byte granule (LSE2), else does it under a lock. */
                         {
                             uint64_t in = (rs == 31) ? 0 : state.__x[rs];
                             uint64_t old;
-                            switch (size_lg2)
+                            if (rw_addr & align_mask)
+                            {
+                                static int swp_unalign_n;
+                                int atomic;
+                                old = ios_swp_unaligned( rw_addr, size_lg2, in, &atomic );
+                                if (swp_unalign_n < 4)
+                                    dprintf(STDERR_FILENO,
+                                        "[swp-emul] ml626 #%d unaligned atomic: insn=0x%08x size=%d "
+                                        "addr=0x%llx rw=0x%llx %s\n",
+                                        ++swp_unalign_n, insn, 1 << size_lg2,
+                                        (unsigned long long)fault_addr, (unsigned long long)rw_addr,
+                                        atomic ? "LSE2 swpal on alias" : "locked (crosses 16B)");
+                            }
+                            else switch (size_lg2)
                             {
                             case 0:  old = __atomic_exchange_n((uint8_t  *)rw_addr, (uint8_t )in, __ATOMIC_SEQ_CST); break;
                             case 1:  old = __atomic_exchange_n((uint16_t *)rw_addr, (uint16_t)in, __ATOMIC_SEQ_CST); break;
