@@ -1,0 +1,116 @@
+diff --git a/src/winemetal/unix/winemetal_unix.c b/src/winemetal/unix/winemetal_unix.c
+index cd70400..2461fa7 100644
+--- a/src/winemetal/unix/winemetal_unix.c
++++ b/src/winemetal/unix/winemetal_unix.c
+@@ -1584,6 +1584,102 @@ MTLMeshRenderPipelineDescriptor ()
+ 
+ #endif
+ 
++/* Madeira iOS 16: one-shot probe after the first render PSO compile failure.
++ * The AGX error ("Compiler encountered an internal error") names nothing, so
++ * rebuild the failing pipeline several ways and against runtime-compiled
++ * MSL that isolates each feature airconv's vertex shaders use, and log which
++ * ones compile. Runs once per process. */
++static void
++wmt_pso_probe_try(id<MTLDevice> device, MTLRenderPipelineDescriptor *d, const char *what) {
++  NSError *e = NULL;
++  id<MTLRenderPipelineState> pso = [device newRenderPipelineStateWithDescriptor:d error:&e];
++  fprintf(stderr, "[pso-probe] %-28s %s%s\n", what, pso ? "OK" : "FAIL ",
++          pso ? "" : (e ? [[e localizedDescription] UTF8String] : "(no error)"));
++  if (pso)
++    [pso release];
++}
++
++static void
++wmt_pso_probe(id<MTLDevice> device, MTLRenderPipelineDescriptor *failed) {
++  static int done;
++  if (done++)
++    return;
++  @autoreleasepool {
++    MTLPixelFormat fmt = failed.colorAttachments[0].pixelFormat;
++    if (fmt == MTLPixelFormatInvalid)
++      fmt = MTLPixelFormatBGRA8Unorm;
++    fprintf(stderr, "[pso-probe] begin: vs=%s fs=%s rt0=%lu depth=%lu samples=%lu raster=%d\n",
++            failed.vertexFunction ? [failed.vertexFunction.name UTF8String] : "-",
++            failed.fragmentFunction ? [failed.fragmentFunction.name UTF8String] : "-",
++            (unsigned long)failed.colorAttachments[0].pixelFormat, (unsigned long)failed.depthAttachmentPixelFormat,
++            (unsigned long)failed.rasterSampleCount, (int)failed.rasterizationEnabled);
++
++    MTLRenderPipelineDescriptor *d = [failed copy];
++    wmt_pso_probe_try(device, d, "same descriptor again");
++    for (unsigned i = 0; i < 31; i++) {
++      d.vertexBuffers[i].mutability = MTLMutabilityDefault;
++      d.fragmentBuffers[i].mutability = MTLMutabilityDefault;
++    }
++    wmt_pso_probe_try(device, d, "no immutable buffers");
++    d.fragmentFunction = nil;
++    wmt_pso_probe_try(device, d, "airconv VS, no FS");
++    [d release];
++
++    NSString *src = @
++      "#include <metal_stdlib>\n"
++      "using namespace metal;\n"
++      "struct O { float4 p [[position]]; };\n"
++      "struct OI { float4 p [[position, invariant]]; };\n"
++      "struct AB { constant float4 *cb0; constant float4 *cb1; };\n"
++      "vertex O v_plain(uint vid [[vertex_id]]) { O o; o.p = float4(float(vid & 1), float(vid >> 1), 0, 1); return o; }\n"
++      "vertex OI v_inv(uint vid [[vertex_id]]) { OI o; o.p = float4(float(vid & 1), float(vid >> 1), 0, 1); return o; }\n"
++      "vertex O v_pull(uint vid [[vertex_id]], constant ulong *vb [[buffer(16)]]) {\n"
++      "  device packed_float3 *p = (device packed_float3 *)vb[0]; O o; o.p = float4(float3(p[vid]), 1); return o; }\n"
++      "vertex O v_argbuf(uint vid [[vertex_id]], constant AB &t [[buffer(29)]]) { O o; o.p = t.cb0[vid] * t.cb1[0]; return o; }\n"
++      "vertex O v_base(uint vid [[vertex_id]], uint bv [[base_vertex]], uint iid [[instance_id]], uint bi [[base_instance]]) {\n"
++      "  O o; o.p = float4(float(vid + bv), float(iid + bi), 0, 1); return o; }\n"
++      "fragment float4 f_zero() { return float4(0); }\n";
++    MTLCompileOptions *opts = [[MTLCompileOptions alloc] init];
++    opts.preserveInvariance = YES;
++    NSError *e = NULL;
++    id<MTLLibrary> lib = [device newLibraryWithSource:src options:opts error:&e];
++    [opts release];
++    if (!lib) {
++      fprintf(stderr, "[pso-probe] MSL library FAIL %s\n", e ? [[e localizedDescription] UTF8String] : "");
++      return;
++    }
++    id<MTLFunction> fzero = [lib newFunctionWithName:@"f_zero"];
++    const char *names[] = {"v_plain", "v_inv", "v_pull", "v_argbuf", "v_base"};
++    for (unsigned i = 0; i < 5; i++) {
++      id<MTLFunction> vs = [lib newFunctionWithName:[NSString stringWithUTF8String:names[i]]];
++      MTLRenderPipelineDescriptor *m = [[MTLRenderPipelineDescriptor alloc] init];
++      m.colorAttachments[0].pixelFormat = fmt;
++      m.vertexFunction = vs;
++      m.fragmentFunction = fzero;
++      char what[64];
++      snprintf(what, sizeof what, "MSL %s + f_zero", names[i]);
++      wmt_pso_probe_try(device, m, what);
++      [m release];
++      [vs release];
++    }
++    /* Each airconv stage against a runtime-compiled partner. */
++    id<MTLFunction> vplain = [lib newFunctionWithName:@"v_plain"];
++    MTLRenderPipelineDescriptor *m = [[MTLRenderPipelineDescriptor alloc] init];
++    m.colorAttachments[0].pixelFormat = fmt;
++    m.vertexFunction = failed.vertexFunction;
++    m.fragmentFunction = fzero;
++    wmt_pso_probe_try(device, m, "airconv VS + MSL f_zero");
++    m.vertexFunction = vplain;
++    m.fragmentFunction = failed.fragmentFunction;
++    wmt_pso_probe_try(device, m, "MSL v_plain + airconv FS");
++    [m release];
++    [vplain release];
++    [fzero release];
++    [lib release];
++    fprintf(stderr, "[pso-probe] end\n");
++  }
++}
++
+ static NTSTATUS
+ _MTLDevice_newRenderPipelineState(void *obj) {
+   struct unixcall_mtldevice_newrenderpso *params = obj;
+@@ -1653,6 +1749,8 @@ _MTLDevice_newRenderPipelineState(void *obj) {
+                                                                                            reflection:nil
+                                                                                                 error:&err];
+   params->ret_error = (obj_handle_t)err;
++  if (err && !params->ret_pso)
++    wmt_pso_probe((id<MTLDevice>)params->device, descriptor);
+   if (!err && info->binary_archive_for_serialization) {
+     [(id<MTLBinaryArchive>)info->binary_archive_for_serialization addRenderPipelineFunctionsWithDescriptor:descriptor
+                                                                                                      error:&err];
