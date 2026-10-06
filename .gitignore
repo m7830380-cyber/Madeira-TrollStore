@@ -164,4 +164,5 @@ app/Madeira/arm64ec-windows/dock-notices.txt
 
 # Device logs dropped into the checkout for debugging
 /*.txt
+/*.metallib
 !/LICENSE*.txt

@@ -1,0 +1,77 @@
+diff --git a/src/airconv/metallib_writer.cpp b/src/airconv/metallib_writer.cpp
+index 149f4df..c0a5793 100644
+--- a/src/airconv/metallib_writer.cpp
++++ b/src/airconv/metallib_writer.cpp
+@@ -52,13 +52,37 @@ static Metadata *strip_md_string(LLVMContext &context, Metadata *md, StringRef s
+   return changed ? MDTuple::get(context, ops) : md;
+ }
+ 
++/* poison -> undef, including inside constant vectors/structs/arrays. */
++static Constant *depoison(Constant *c) {
++  if (isa<PoisonValue>(c))
++    return UndefValue::get(c->getType());
++  if (!isa<ConstantVector>(c) && !isa<ConstantStruct>(c) && !isa<ConstantArray>(c))
++    return c;
++  SmallVector<Constant *, 16> ops;
++  bool changed = false;
++  for (unsigned i = 0; i < c->getNumOperands(); i++) {
++    auto *op = cast<Constant>(c->getOperand(i));
++    auto *n = depoison(op);
++    changed |= n != op;
++    ops.push_back(n);
++  }
++  if (!changed)
++    return c;
++  if (isa<ConstantVector>(c))
++    return ConstantVector::get(ops);
++  if (auto *st = dyn_cast<ConstantStruct>(c))
++    return ConstantStruct::get(st->getType(), ops);
++  return ConstantArray::get(cast<ConstantArray>(c)->getType(), ops);
++}
++
+ /* iOS 16's GPU compiler fails every pipeline built from airconv output with
+  * "Compiler encountered an internal error", even trivial ones. Normalise what
+  * an Xcode 14 / Metal 3.0 toolchain would not have produced:
+  *  - [[invariant]] on the position output (needs preserveInvariance there),
+  *  - poison operands (undef has the same meaning for these uses),
+  *  - the mustprogress function attribute,
+- *  - an "SDK Version" of 15.0 (a macOS SDK) under an iOS 16 triple. */
++ *  - an "SDK Version" of 15.0 (a macOS SDK) under an iOS 16 triple,
++ *  - a "frame-pointer" module flag (Apple's output has none). */
+ static void normalise_legacy(Module &module) {
+   auto &context = module.getContext();
+   for (const char *kind : {"air.vertex", "air.mesh"}) {
+@@ -75,8 +99,10 @@ static void normalise_legacy(Module &module) {
+     for (auto &BB : F) {
+       for (auto &I : BB) {
+         for (unsigned i = 0; i < I.getNumOperands(); i++) {
+-          if (isa<PoisonValue>(I.getOperand(i)))
+-            I.setOperand(i, UndefValue::get(I.getOperand(i)->getType()));
++          if (auto *c = dyn_cast<Constant>(I.getOperand(i))) {
++            if (auto *n = depoison(c); n != c)
++              I.setOperand(i, n);
++          }
+         }
+         if (auto *call = dyn_cast<CallBase>(&I))
+           call->removeFnAttr(Attribute::MustProgress);
+@@ -87,7 +113,7 @@ static void normalise_legacy(Module &module) {
+     SmallVector<MDNode *, 16> keep;
+     for (auto *flag : flags->operands()) {
+       auto *name = flag->getNumOperands() > 1 ? dyn_cast_or_null<MDString>(flag->getOperand(1)) : nullptr;
+-      if (!name || name->getString() != "SDK Version")
++      if (!name || (name->getString() != "SDK Version" && name->getString() != "frame-pointer"))
+         keep.push_back(flag);
+     }
+     flags->clearOperands();
+@@ -101,7 +127,10 @@ static void restamp_legacy(Module &module) {
+   auto &context = module.getContext();
+   normalise_legacy(module);
+   auto u32_md = [&](uint32_t v) { return ConstantAsMetadata::get(ConstantInt::get(context, APInt{32, v})); };
+-  module.setTargetTriple("air64-apple-ios16.0.0");
++  // Apple's own iOS 16 toolchain (DXMT's command library, which does compile
++  // on device) encodes the AIR version in the arch: air64_v25. iOS 17+ also
++  // take a plain "air64"; iOS 16's GPU compiler fails every pipeline with it.
++  module.setTargetTriple("air64_v25-apple-ios16.0.0");
+   if (auto *md = module.getNamedMetadata("air.version"))
+     module.eraseNamedMetadata(md);
+   if (auto *md = module.getNamedMetadata("air.language_version"))
