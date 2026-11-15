@@ -4311,7 +4311,7 @@ struct TouchControlsOverlay: View {
                 // happen) draws nothing over the library's own screens.
                 if landscape && !(library.enabled && !session && !m.editing) {
                     if m.editing {
-                        Color.clear.contentShape(editorCanvas(geo.size))
+                        Color.clear.contentShape(editorCanvas(geo.size), eoFill: true)
                             .onTapGesture { m.selected = nil; zones.selected = nil }
                     }
                     if (m.visible || m.editing) && !library.blocksGameplayTouch {
@@ -4348,17 +4348,19 @@ struct TouchControlsOverlay: View {
 
     /// The dismissal gesture must never take a control's drag on iOS 26.
     private func editorCanvas(_ screen: CGSize) -> Path {
-        var area = Path(CGRect(origin: .zero, size: screen))
+        var area = Path()
+        area.addRect(CGRect(origin: .zero, size: screen))
         for control in m.controls {
             let size = TouchControlsModel.size(control)
             let frame = CGRect(x: CGFloat(control.nx) * screen.width - size.width / 2,
                                y: CGFloat(control.ny) * screen.height - size.height / 2,
                                width: size.width, height: size.height)
-            area = area.subtracting(Path(frame))
+            area.addRect(frame)
         }
         if GestureZonesModel.enabled {
-            for zone in zones.zones { area = area.subtracting(Path(zone.rect(in: screen))) }
+            for zone in zones.zones { area.addRect(zone.rect(in: screen)) }
         }
+        area.usesEvenOddFillRule = true
         return area
     }
 
@@ -4593,6 +4595,7 @@ struct TouchControlButton: View {
     @ObservedObject private var m = TouchControlsModel.shared
     @AppStorage(TouchControlStyle.key) private var style = "glass"
     @State private var isDown = false
+    @State private var wasPadAction = false
     @State private var dragBase: CGPoint?
     @State private var stickDir: Int = -1
     @State private var padVector = CGSize.zero
@@ -4733,8 +4736,10 @@ struct TouchControlButton: View {
         .onChange(of: m.editing) { _ in if control.action.isPad { padVector = .zero; isDown = false } }
         .onChange(of: screen) { _ in if control.action.isPad { padVector = .zero; isDown = false } }
         .onChange(of: control.action) { action in
-            if action.isPad || control.action.isPad { padVector = .zero; isDown = false }
+            if wasPadAction || action.isPad { padVector = .zero; isDown = false }
+            wasPadAction = action.isPad
         }
+        .onAppear { wasPadAction = control.action.isPad }
         .position(x: CGFloat(control.nx) * screen.width,
                   y: CGFloat(control.ny) * screen.height)
         .gesture(

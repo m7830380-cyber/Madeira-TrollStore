@@ -2274,7 +2274,11 @@ struct LibraryNavSearch: UIViewControllerRepresentable {
             let layer = bar.layer
             let now = layer.convertTime(CACurrentMediaTime(), from: nil)
             let squeezed = 0.985, inTime = 0.12
-            let back = CASpringAnimation(perceptualDuration: 0.5, bounce: 0.5)
+            let back = CASpringAnimation()
+            back.mass = 1
+            back.stiffness = 100
+            back.damping = 10
+            back.initialVelocity = 0
             back.keyPath = "transform.scale"
             back.fromValue = squeezed
             back.toValue = 1
@@ -6087,7 +6091,7 @@ struct LibraryLiveLogs: View {
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: max(0, geo.size.height - 16), alignment: .topLeading)
-            }.defaultScrollAnchor(.bottom).padding(8)
+            }.padding(8)
         }.background(.black.opacity(0.65), in: RoundedRectangle(cornerRadius: 10)).foregroundStyle(.white)
             .accessibilityLabel(L("Live diagnostic log"))
     }
