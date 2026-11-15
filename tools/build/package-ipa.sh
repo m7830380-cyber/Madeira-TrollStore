@@ -35,7 +35,8 @@ xcodebuild \
   -sdk iphoneos \
   -destination 'generic/platform=iOS' \
   -derivedDataPath "$DERIVED" \
-  IPHONEOS_DEPLOYMENT_TARGET=18.0 \
+  IPHONEOS_DEPLOYMENT_TARGET=16.0 \
+  ENABLE_DEBUG_DYLIB=NO \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
   CODE_SIGN_IDENTITY='' \
@@ -61,6 +62,10 @@ bundle_required=(
 for path in "${bundle_required[@]}"; do
   [[ -e "$path" ]] || { echo "ERROR: required bundle resource missing: $path" >&2; exit 1; }
 done
+[[ ! -e "$APP/Madeira.debug.dylib" ]] || {
+  echo "ERROR: Debug dylib must not ship in the iOS 16 package" >&2
+  exit 1
+}
 codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q 'com.apple.security.cs.allow-jit' || {
   echo "ERROR: packaged app is missing the allow-jit entitlement" >&2
   exit 1
