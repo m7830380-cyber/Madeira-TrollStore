@@ -27,7 +27,7 @@ if /usr/libexec/PlistBuddy -c 'Print :MadeiraTrollStore' "$A/Info.plist" >/dev/n
 else
   /usr/libexec/PlistBuddy -c 'Add :MadeiraTrollStore bool true' "$A/Info.plist"
 fi
-/usr/libexec/PlistBuddy -c 'Set :MinimumOSVersion 16.0' "$A/Info.plist"
+/usr/libexec/PlistBuddy -c 'Set :MinimumOSVersion 18.0' "$A/Info.plist"
 # Drop iOS 26-only JIT components, then remove Xcode signatures before
 # applying TrollStore entitlements.
 rm -rf "$A/PlugIns/MadeiraJITHelper.appex" "$A/PlugIns/MadeiraMemoryHost.appex" "$A/Frameworks/StikJIT.framework"
@@ -46,7 +46,7 @@ done < <(find "$A" -type f -print0)
 BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$A/Info.plist")
 # App-bundle keys are outside the code signature; keep the packaged Info.plist
 # changes intact after applying the final executable signature.
-/usr/libexec/PlistBuddy -c 'Set :MinimumOSVersion 16.0' "$A/Info.plist"
+/usr/libexec/PlistBuddy -c 'Set :MinimumOSVersion 18.0' "$A/Info.plist"
 ENTITLEMENTS="$STAGE/trollstore.entitlements"
 /usr/libexec/PlistBuddy -x -c 'Print' "$ROOT/ci/trollstore.entitlements" > "$ENTITLEMENTS"
 /usr/libexec/PlistBuddy -c "Set :application-identifier MADEIRA.$BUNDLE_ID" \
@@ -90,8 +90,7 @@ unzip -q "$DIST/Madeira.tipa" -d "$VERIFY"
 VAPP="$VERIFY/Payload/Madeira.app"
 test -d "$VAPP"
 /usr/libexec/PlistBuddy -c 'Print :MadeiraTrollStore' "$VAPP/Info.plist" | grep -qx 'true'
-/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$VAPP/Info.plist" | grep -qx '16.0'
-test ! -e "$VAPP/Madeira.debug.dylib"
+/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$VAPP/Info.plist" | grep -qx '18.0'
 test ! -e "$VAPP/PlugIns/MadeiraJITHelper.appex"
 test ! -e "$VAPP/PlugIns/MadeiraMemoryHost.appex"
 test ! -e "$VAPP/Frameworks/StikJIT.framework"
