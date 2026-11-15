@@ -4311,7 +4311,7 @@ struct TouchControlsOverlay: View {
                 // happen) draws nothing over the library's own screens.
                 if landscape && !(library.enabled && !session && !m.editing) {
                     if m.editing {
-                        Color.clear.contentShape(editorCanvas(geo.size), eoFill: true)
+                        Color.clear.contentShape(editorCanvas(geo.size))
                             .onTapGesture { m.selected = nil; zones.selected = nil }
                     }
                     if (m.visible || m.editing) && !library.blocksGameplayTouch {
