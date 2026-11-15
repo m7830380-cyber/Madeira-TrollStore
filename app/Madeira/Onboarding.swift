@@ -275,7 +275,7 @@ struct OnboardingView: View {
             dock.refresh()
             localDevVPNInstalled = LocalDevVPN.isInstalled
         }
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase) { phase in
             if phase == .active { localDevVPNInstalled = LocalDevVPN.isInstalled }
         }
     }
@@ -769,12 +769,12 @@ struct SteamSettingsSection: View {
                 ForEach(SteamLanguage.all, id: \.code) { Text($0.name).tag($0.code) }
             }
             .pickerStyle(.navigationLink)
-            .onChange(of: language) { _, value in SteamLanguage.choose(value.isEmpty ? nil : value) }
+            .onChange(of: language) { value in SteamLanguage.choose(value.isEmpty ? nil : value) }
             // Off: no Steam Cloud checks, transfers or prompts before Play (docs/STEAM_CLOUD.md).
             if SteamOwnedLibrary.enabled {
                 Toggle("Steam Cloud saves", isOn: $cloud.on)
                 Toggle("Downloads from PCs on this network", isOn: $lanOn)
-                    .onChange(of: lanOn) { _, value in SteamLANSetting.enabled = value }
+                    .onChange(of: lanOn) { value in SteamLANSetting.enabled = value }
                 if lanOn {
                     LabeledContent("PC address") {
                         TextField("Automatic", text: $lanHost)
@@ -784,7 +784,7 @@ struct SteamSettingsSection: View {
                             .multilineTextAlignment(.trailing)
                             .foregroundStyle(lanHost.isEmpty || SteamLANSetting.isValidAddress(lanHost) ? Color.primary : Color.red)
                     }
-                    .onChange(of: lanHost) { _, value in
+                    .onChange(of: lanHost) { value in
                         let trimmed = value.trimmingCharacters(in: .whitespaces)
                         if trimmed.isEmpty || SteamLANSetting.isValidAddress(trimmed) { SteamLANSetting.host = trimmed }
                     }

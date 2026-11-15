@@ -550,7 +550,7 @@ struct LibraryGridPage: View {
                 steamGames.refresh()
                 if SteamOwnedLibrary.enabled { steam.start(); steam.reconcileSession() }
             }
-            .onChange(of: scenePhase) { _, phase in
+            .onChange(of: scenePhase) { phase in
                 if phase == .active { steamGames.refresh(); if SteamOwnedLibrary.enabled { steam.reconcileSession() } }
             }
             .sheet(item: $steamSheet) { selection in
@@ -604,7 +604,7 @@ struct LibraryGridPage: View {
         case .notInstalledToggle(let count, _):
             return AnyView(LibraryGridNotInstalledToggle(count: count))
         case .emptyLibrary:
-            return AnyView(ContentUnavailableView("Make yourself at home", systemImage: "gamecontroller", description: Text("Copy a game's folder into Madeira › wine › drive_c with the Files app, then tap + and choose its .exe.")))
+            return AnyView(UnavailableNotice("Make yourself at home", systemImage: "gamecontroller", description: Text("Copy a game's folder into Madeira › wine › drive_c with the Files app, then tap + and choose its .exe.")))
         case .store(.gog, _):
             return AnyView(GOGGamesSection(search: search, layout: layout, width: width, open: open, inGrid: true))
         case .store(.itch, _):

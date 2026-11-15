@@ -155,7 +155,7 @@ struct ItchSheets: ViewModifier {
             content
             // The library reappears after every session: downloads continue then.
             .onAppear { if ItchLibrary.enabled { itch.start(); itch.reconcileSession() } }
-            .onChange(of: scenePhase) { _, phase in if phase == .active && ItchLibrary.enabled { itch.reconcileSession() } }
+            .onChange(of: scenePhase) { phase in if phase == .active && ItchLibrary.enabled { itch.reconcileSession() } }
             .sheet(item: $sheets.itchGame) { selection in
                 ItchGameSheet(gameID: selection.id) { entry in
                     // Let the download sheet finish dismissing before presenting the details page.
@@ -392,7 +392,7 @@ struct ItchGameSheet: View {
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 } else {
-                    ContentUnavailableView("Game unavailable", systemImage: "questionmark.square.dashed",
+                    UnavailableNotice("Game unavailable", systemImage: "questionmark.square.dashed",
                                            description: Text("Refresh your itch.io library and try again."))
                 }
             }

@@ -392,7 +392,7 @@ struct AppleSignInSheet: View {
             }
         }
         .interactiveDismissDisabled(signIn.working)
-        .onChange(of: signIn.phase) { _, phase in
+        .onChange(of: signIn.phase) { phase in
             switch phase {
             case .done: dismiss()
             // A new prompt, after a wrong code or with a new code on its way, starts empty.
@@ -449,7 +449,7 @@ struct AppleSignInSheet: View {
                     .font(.title2.monospacedDigit())
                     .focused($codeFocused)
                     .disabled(pending != nil)
-                    .onChange(of: code) { _, typed in
+                    .onChange(of: code) { typed in
                         let digits = String(typed.filter(\.isNumber).prefix(6))
                         if digits != typed { code = digits }
                     }

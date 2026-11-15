@@ -134,7 +134,7 @@ struct EASheets: ViewModifier {
             content
             // The library reappears after every session: downloads continue then.
             .onAppear { if EALibrary.enabled { ea.start(); ea.reconcileSession() } }
-            .onChange(of: scenePhase) { _, phase in if phase == .active && EALibrary.enabled { ea.reconcileSession() } }
+            .onChange(of: scenePhase) { phase in if phase == .active && EALibrary.enabled { ea.reconcileSession() } }
             .sheet(item: $sheets.eaGame) { selection in
                 EAGameSheet(offerID: selection.id) { entry in
                     // Let the download sheet finish dismissing before presenting the details page.
@@ -375,7 +375,7 @@ struct EAGameSheet: View {
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 } else {
-                    ContentUnavailableView("Game unavailable", systemImage: "questionmark.square.dashed",
+                    UnavailableNotice("Game unavailable", systemImage: "questionmark.square.dashed",
                                            description: Text("Refresh your EA library and try again."))
                 }
             }

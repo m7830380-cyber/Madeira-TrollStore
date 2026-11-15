@@ -137,7 +137,7 @@ struct EpicSheets: ViewModifier {
             content
             // The library reappears after every session: downloads continue then.
             .onAppear { if EpicLibrary.enabled { epic.start(); epic.reconcileSession() } }
-            .onChange(of: scenePhase) { _, phase in if phase == .active && EpicLibrary.enabled { epic.reconcileSession() } }
+            .onChange(of: scenePhase) { phase in if phase == .active && EpicLibrary.enabled { epic.reconcileSession() } }
             .sheet(item: $sheets.epicGame) { selection in
                 EpicGameSheet(appName: selection.id) { entry in
                     // Let the download sheet finish dismissing before presenting the details page.
@@ -364,7 +364,7 @@ struct EpicGameSheet: View {
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 } else {
-                    ContentUnavailableView("Game unavailable", systemImage: "questionmark.square.dashed",
+                    UnavailableNotice("Game unavailable", systemImage: "questionmark.square.dashed",
                                            description: Text("Refresh your Epic Games library and try again."))
                 }
             }

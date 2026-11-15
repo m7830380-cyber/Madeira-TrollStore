@@ -40,7 +40,7 @@ check(catalog.get('sourceLanguage') == 'en', 'English is the source language')
 # The calls whose first argument SwiftUI reads as a LocalizedStringKey, and L("...")
 # (Library.swift) for texts built in code: notes, picker titles, statuses, errors.
 pattern = re.compile(r'\b(?:Text|Button|Label|Toggle|Section|Picker|navigationTitle|LabeledContent|TextField|Link|NavigationLink|'
-                     r'Stepper|Menu|ShareLink|alert|confirmationDialog|SecureField|ContentUnavailableView|DisclosureGroup|ProgressView|L)'
+                     r'Stepper|Menu|ShareLink|alert|confirmationDialog|SecureField|ContentUnavailableView|UnavailableNotice|DisclosureGroup|ProgressView|L)'
                      r'\(\s*"((?:[^"\\]|\\.)*)"')
 literals = set()
 for swift in app.glob('*.swift'):

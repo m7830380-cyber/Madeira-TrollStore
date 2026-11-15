@@ -204,9 +204,18 @@ final class LibraryGridCardCell: LibraryGridHeldCell {
             // Press: spring(response: 0.26, dampingFraction: 0.86) in, spring(response: 0.42, dampingFraction: 0.58) back.
             let pressed = isHighlighted
             let scale = LibraryCardArtworkPress.pressedScale
-            UIView.animate(springDuration: pressed ? 0.26 : 0.42, bounce: pressed ? 0.14 : 0.42, delay: 0,
-                           options: [.allowUserInteraction, .beginFromCurrentState]) {
-                self.cover?.transform = pressed ? CGAffineTransform(scaleX: scale, y: scale) : .identity
+            if #available(iOS 17.0, *) {
+                UIView.animate(springDuration: pressed ? 0.26 : 0.42, bounce: pressed ? 0.14 : 0.42, delay: 0,
+                               options: [.allowUserInteraction, .beginFromCurrentState]) {
+                    self.cover?.transform = pressed ? CGAffineTransform(scaleX: scale, y: scale) : .identity
+                }
+            } else {
+                UIView.animate(withDuration: pressed ? 0.26 : 0.42, delay: 0,
+                               usingSpringWithDamping: pressed ? 0.86 : 0.58,
+                               initialSpringVelocity: 0,
+                               options: [.allowUserInteraction, .beginFromCurrentState]) {
+                    self.cover?.transform = pressed ? CGAffineTransform(scaleX: scale, y: scale) : .identity
+                }
             }
         }
     }

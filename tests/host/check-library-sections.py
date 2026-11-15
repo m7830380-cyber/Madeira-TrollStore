@@ -57,7 +57,7 @@ require('part: steamFirst ? .notInstalled : .all, open: { selected = $0 })' in p
         and 'if MadeiraDock.enabled && tab.shows(.steam) {' in page[others_at:],
         'Not installed follows Other games; with nothing installed the whole Steam section does')
 single = page[others_at:]
-require('ContentUnavailableView("Make yourself at home"' in single and single.count('cells(entries, width: viewport.size.width)') == 2,
+require('UnavailableNotice("Make yourself at home"' in single and single.count('cells(entries, width: viewport.size.width)') == 2,
         'without the Steam section: one grid of the games you added, or the empty-library message')
 require('.refreshable { await SteamGamesSection.refresh() }' in page, 'pull down on the library refreshes the Steam section')
 

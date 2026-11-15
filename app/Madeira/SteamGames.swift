@@ -352,6 +352,34 @@ enum SteamDirectStart {
 
 // MARK: - Model
 
+/// ContentUnavailableView on iOS 17 and later; a native SwiftUI fallback on iOS 16.
+struct UnavailableNotice: View {
+    let title: String
+    let systemImage: String
+    let description: Text
+
+    init(_ title: String, systemImage: String, description: Text) {
+        self.title = title
+        self.systemImage = systemImage
+        self.description = description
+    }
+
+    var body: some View {
+        if #available(iOS 17.0, *) {
+            ContentUnavailableView(title, systemImage: systemImage, description: description)
+        } else {
+            VStack(spacing: 12) {
+                Image(systemName: systemImage).font(.system(size: 48)).foregroundStyle(.secondary)
+                Text(title).font(.title2.bold())
+                description.font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            }
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+
 /// The games Steam has installed in the prefix (Dock's discovery, off the main
 /// thread), with the build each Madeira-managed install records.
 @MainActor final class SteamGamesModel: ObservableObject {
@@ -614,7 +642,7 @@ struct SteamGamesSection: View {
             model.refresh()
             if libraryEnabled { steam.start(); steam.reconcileSession() }
         }
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase) { phase in
             if phase == .active {
                 model.refresh()
                 if libraryEnabled { steam.reconcileSession(); steam.refreshAfterForeground() }
@@ -1237,7 +1265,7 @@ struct SteamGameSheet: View {
                         }
                     }
                 } else {
-                    ContentUnavailableView("Game unavailable", systemImage: "questionmark.square.dashed",
+                    UnavailableNotice("Game unavailable", systemImage: "questionmark.square.dashed",
                                            description: Text("Refresh your Steam library and try again."))
                 }
             }

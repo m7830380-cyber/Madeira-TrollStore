@@ -177,8 +177,8 @@ struct ConfigOptionRow: View {
                     .frame(maxWidth: 170)
             }
             .onAppear { draft = value ?? "" }
-            .onChange(of: value) { _, v in if !editing { draft = v ?? "" } }
-            .onChange(of: editing) { _, on in if !on, draft != (value ?? "") { value = draft } }
+            .onChange(of: value) { v in if !editing { draft = v ?? "" } }
+            .onChange(of: editing) { on in if !on, draft != (value ?? "") { value = draft } }
         }
     }
 }
@@ -225,6 +225,6 @@ struct SettingsSearchResults: View {
                 Text("Most options are read when Madeira starts: close it from the app switcher after a change.")
             }
         }
-        .onChange(of: refresh) { _, _ in values = MadeiraConfig.all() }
+        .onChange(of: refresh) { _ in values = MadeiraConfig.all() }
     }
 }

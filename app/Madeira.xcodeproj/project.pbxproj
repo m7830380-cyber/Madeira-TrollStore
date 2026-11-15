@@ -17,6 +17,8 @@
 		A1000540 /* ConfigCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000540 /* ConfigCatalog.swift */; };
 		A1000541 /* ConfigCatalog.generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000541 /* ConfigCatalog.generated.swift */; };
 		A1000531 /* SteamGames.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000531 /* SteamGames.swift */; };
+		A1000F11 /* AmbientKneeEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000F11 /* AmbientKneeEffect.swift */; };
+		A1000F12 /* LiquidMetalEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000F12 /* LiquidMetalEffect.swift */; };
 		A1007B02 /* SwiftItch/ItchAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2007B02 /* ItchAPI.swift */; };
 		A1007B03 /* SwiftItch/ItchArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2007B03 /* ItchArchive.swift */; };
 		A1007B30 /* SwiftItch/itch_7z.c in Sources */ = {isa = PBXBuildFile; fileRef = A2007B30 /* itch_7z.c */; };
@@ -295,6 +297,8 @@
 		A2000540 /* ConfigCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ConfigCatalog.swift"; sourceTree = "<group>"; };
 		A2000541 /* ConfigCatalog.generated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ConfigCatalog.generated.swift"; sourceTree = "<group>"; };
 		A2000531 /* SteamGames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SteamGames.swift"; sourceTree = "<group>"; };
+		A2000F11 /* AmbientKneeEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AmbientKneeEffect.swift"; sourceTree = "<group>"; };
+		A2000F12 /* LiquidMetalEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LiquidMetalEffect.swift"; sourceTree = "<group>"; };
 		A2007B02 /* ItchAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SwiftItch/ItchAPI.swift"; sourceTree = "<group>"; };
 		A2007B03 /* ItchArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SwiftItch/ItchArchive.swift"; sourceTree = "<group>"; };
 		A2007B30 /* itch_7z.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "SwiftItch/itch_7z.c"; sourceTree = "<group>"; };
@@ -621,6 +625,8 @@
 				A2000540 /* ConfigCatalog.swift */,
 				A2000541 /* ConfigCatalog.generated.swift */,
 				A2000531 /* SteamGames.swift */,
+				A2000F11 /* AmbientKneeEffect.swift */,
+				A2000F12 /* LiquidMetalEffect.swift */,
 				A2007B02 /* ItchAPI.swift */,
 				A2007B03 /* ItchArchive.swift */,
 				A2007B30 /* itch_7z.c */,
@@ -1093,6 +1099,8 @@
 				A1000540 /* ConfigCatalog.swift in Sources */,
 				A1000541 /* ConfigCatalog.generated.swift in Sources */,
 				A1000531 /* SteamGames.swift in Sources */,
+				A1000F11 /* AmbientKneeEffect.swift in Sources */,
+				A1000F12 /* LiquidMetalEffect.swift in Sources */,
 				A1007B02 /* SwiftItch/ItchAPI.swift in Sources */,
 				A1007B03 /* SwiftItch/ItchArchive.swift in Sources */,
 				A1007B30 /* SwiftItch/itch_7z.c in Sources */,
@@ -1304,7 +1312,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MADEIRA_BUNDLE_IDENTIFIER = com.willfaust.madeora;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -1333,7 +1341,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MADEIRA_BUNDLE_IDENTIFIER = com.willfaust.madeora;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -1519,7 +1527,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MadeiraMemoryHost/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1542,7 +1550,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MadeiraMemoryHost/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

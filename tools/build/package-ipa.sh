@@ -35,7 +35,7 @@ xcodebuild \
   -sdk iphoneos \
   -destination 'generic/platform=iOS' \
   -derivedDataPath "$DERIVED" \
-  IPHONEOS_DEPLOYMENT_TARGET=18.0 \
+  IPHONEOS_DEPLOYMENT_TARGET=16.0 \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
   CODE_SIGN_IDENTITY='' \

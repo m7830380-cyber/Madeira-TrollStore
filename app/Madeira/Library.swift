@@ -2082,7 +2082,7 @@ struct LibraryTitleText: View {
             Image(systemName: jit ? "bolt.fill" : "bolt")
                 .font(.system(size: LibraryHeaderAlignment.titleFont().pointSize * 0.53, weight: .thin))
                 .foregroundStyle(jit ? Color.accentColor : Color.primary)
-                .contentTransition(.symbolEffect(.replace))
+                .animation(.easeInOut(duration: 0.2), value: jit)
                 .alignmentGuide(.firstTextBaseline) { d in d.height / 2 + LibraryHeaderAlignment.titleFont().capHeight / 2 }
                 .accessibilityLabel(jit ? L("JIT enabled") : L("JIT not enabled"))
         }
@@ -2633,7 +2633,7 @@ struct AmbientGlow: View {
             // In the dark the light adds to the page (plusLighter): a very bright artwork's
             // light is brought down at the top (AmbientGlow.metal) so it does not glare.
             // ml1219: off on a light page, where a knee of 0 left every pixel as it was.
-            .colorEffect(ShaderLibrary.ambientKnee(.float(0.3)), isEnabled: dark)
+            .modifier(AmbientKneeEffect(enabled: dark))
             .mask { AmbientMovie.mask(f.light) }
             .mask {
                 let turn = reduceMotion ? 0 : 1.2 * sin(t * 0.12 + Double(seed % 97))
@@ -2789,8 +2789,8 @@ struct LiquidMetalFill: View {
                 // Kept small, so the shader's float time stays precise.
                 let time = Float(context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600))
                 Rectangle()
-                    .colorEffect(ShaderLibrary.liquidMetal(.float2(geometry.size), .float(reduceMotion ? 0 : time),
-                                                           .float(Float(displayScale)), .float(scheme == .light ? 1 : 0)))
+                    .modifier(LiquidMetalEffect(size: geometry.size, time: reduceMotion ? 0 : time,
+                                                displayScale: Float(displayScale), light: scheme == .light))
             }
         }
         .allowsHitTesting(false)
@@ -3236,7 +3236,7 @@ struct LibraryGroupedGames<LocalCell: View>: View {
         VStack(alignment: .leading, spacing: 24) {
             if groups.isEmpty {
                 if search.isEmpty {
-                    ContentUnavailableView("Make yourself at home", systemImage: "gamecontroller", description: Text("Copy a game's folder into Madeira › wine › drive_c with the Files app, then tap + and choose its .exe."))
+                    UnavailableNotice("Make yourself at home", systemImage: "gamecontroller", description: Text("Copy a game's folder into Madeira › wine › drive_c with the Files app, then tap + and choose its .exe."))
                 } else {
                     Text("No games match your search.").foregroundStyle(.secondary)
                 }
@@ -3261,7 +3261,7 @@ struct LibraryGroupedGames<LocalCell: View>: View {
             steamGames.refresh()
             if SteamOwnedLibrary.enabled { steam.start(); steam.reconcileSession() }
         }
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase) { phase in
             if phase == .active { steamGames.refresh(); if SteamOwnedLibrary.enabled { steam.reconcileSession() } }
         }
         .sheet(item: $steamSheet) { selection in
@@ -3670,7 +3670,7 @@ struct LibraryView: View {
                 } else if !tab.shows(.other) {
                     EmptyView()
                 } else if model.entries.filter({ $0.desktop != true && $0.listedInLibrary && $0.steamAppID == nil && $0.epicAppName == nil && $0.gogProductID == nil && $0.itchGameID == nil && $0.eaOfferID == nil }).isEmpty {
-                    ContentUnavailableView("Make yourself at home", systemImage: "gamecontroller", description: Text("Copy a game's folder into Madeira › wine › drive_c with the Files app, then tap + and choose its .exe."))
+                    UnavailableNotice("Make yourself at home", systemImage: "gamecontroller", description: Text("Copy a game's folder into Madeira › wine › drive_c with the Files app, then tap + and choose its .exe."))
                 } else {
                     cells(entries, width: viewport.size.width)
                 }
@@ -3716,12 +3716,12 @@ struct LibraryView: View {
             }
         }
         .modifier(LibrarySheets(model: model, browser: $browser, selected: $selected, play: play, jit: jit))
-        .onChange(of: scenePhase) { _, phase in if phase == .active { model.refreshFlag() } }
+        .onChange(of: scenePhase) { phase in if phase == .active { model.refreshFlag() } }
         .onAppear {
             if focused == nil { focused = LibraryEntry.desktopID }
             GlassSkin.shared.start()   // liquid metal on the navigation bar's glass pills
         }
-        .onChange(of: focused) { _, id in
+        .onChange(of: focused) { id in
             if let id { withAnimation(UIAccessibility.isReduceMotionEnabled ? nil : .easeInOut(duration: 0.2)) { reader.scrollTo(id, anchor: .center) } }
         }
         }
@@ -3800,7 +3800,7 @@ struct LibraryView: View {
             }
         }
         .modifier(LibrarySheets(model: model, browser: $browser, selected: $selected, play: play, jit: jit))
-        .onChange(of: scenePhase) { _, phase in if phase == .active { model.refreshFlag() } }
+        .onChange(of: scenePhase) { phase in if phase == .active { model.refreshFlag() } }
         .onAppear {
             if focused == nil { focused = LibraryEntry.desktopID }
             GlassSkin.shared.start()
@@ -3877,13 +3877,13 @@ private struct LibrarySheets: ViewModifier {
                     }
                 })
             }
-            .onChange(of: model.current) { _, current in if current != nil { selected = nil } }
-            .onChange(of: model.error) { _, error in if error != nil { selected = nil } }
-            .onChange(of: model.restartNotice) { _, notice in if notice != nil { selected = nil } }
-            .onChange(of: model.jitNotice) { _, notice in if notice != nil { selected = nil } }
-            .onChange(of: model.cloudNotice) { _, notice in if notice != nil { selected = nil } }
-            .onChange(of: jit.showSetup) { _, show in if show { selected = nil } }
-            .onChange(of: model.showDetail) { _, id in
+            .onChange(of: model.current) { current in if current != nil { selected = nil } }
+            .onChange(of: model.error) { error in if error != nil { selected = nil } }
+            .onChange(of: model.restartNotice) { notice in if notice != nil { selected = nil } }
+            .onChange(of: model.jitNotice) { notice in if notice != nil { selected = nil } }
+            .onChange(of: model.cloudNotice) { notice in if notice != nil { selected = nil } }
+            .onChange(of: jit.showSetup) { show in if show { selected = nil } }
+            .onChange(of: model.showDetail) { id in
                 guard let id else { return }
                 model.showDetail = nil
                 selected = model.entries.first { $0.id == id }
@@ -5233,7 +5233,7 @@ struct RuntimeMemorySyncSettings: View {
                 if changed { Text("Restart Madeira (close it from the app switcher) for these changes to apply.").foregroundStyle(.orange) }
             }
         }
-        .onChange(of: refresh) { _, _ in
+        .onChange(of: refresh) { _ in
             poolMB = Self.intKey("pool"); vramMB = Self.intKey("vram-mb"); swapMB = Self.intKey("swap-mb"); donorPoolMB = Self.intKey("donor-pool-mb")
             coverage = Self.currentCoverage(); wow64 = MadeiraConfig.get("swap-wow64") ?? ""; engine = SyncEngine.current
             eco = MadeiraConfig.bool("eco", default: false)
@@ -5431,7 +5431,7 @@ struct GraphicsSettings: View {
         } header: { Text("Graphics") } footer: {
             Text("These write d3d9 / d3d11 / d3d12 / vulkan into madeira.cfg; changes apply at the next session start. Per-game overrides go in the game's custom config lines (Advanced › This game's config).")
         }
-        .onChange(of: refresh) { _, _ in reload() }
+        .onChange(of: refresh) { _ in reload() }
     }
 }
 
@@ -5548,7 +5548,7 @@ struct LibraryFloatingItem: View {
         .frame(maxWidth: isMenu ? 48 : nil)
         .fixedSize(horizontal: !isMenu, vertical: true)
         .background(GeometryReader { proxy in
-            Color.clear.onAppear { measured = proxy.size }.onChange(of: proxy.size) { _, size in measured = size }
+            Color.clear.onAppear { measured = proxy.size }.onChange(of: proxy.size) { size in measured = size }
         })
         .contentShape(Rectangle())
         .highPriorityGesture(DragGesture(minimumDistance: 6, coordinateSpace: .global).updating($drag) { value, state, transaction in
@@ -5560,7 +5560,7 @@ struct LibraryFloatingItem: View {
             }
         })
         .position(center)
-        .onAppear { record(rect) }.onChange(of: rect) { _, value in record(value) }
+        .onAppear { record(rect) }.onChange(of: rect) { value in record(value) }
         .onDisappear { record(.zero) }
         .task(id: touched) {
             guard isMenu else { return }
@@ -5669,7 +5669,7 @@ struct LibraryHUD: View {
             .preferredColorScheme(.dark)
         }.ignoresSafeArea()
         .onAppear { model.saveCurrentProfile() }
-        .onChange(of: model.menu) { _, open in
+        .onChange(of: model.menu) { open in
             LibraryController.shared.configure(enabled: model.enabled, ownsInput: open)
             if !open { bindsPage = false; assistPage = false }
             if !open { model.saveCurrentProfile() }
@@ -5841,7 +5841,7 @@ struct LibraryHUD: View {
                     HStack(spacing: 10) {
                         ProgressView().controlSize(.small).tint(.white)
                         Text(status).font(.subheadline).foregroundStyle(.white.opacity(0.78))
-                            .contentTransition(.opacity).animation(.easeInOut(duration: 0.3), value: status)
+                            .animation(.easeInOut(duration: 0.3), value: status)
                     }
                     if dockStart.active, let note = DockInstallers.note {
                         Text(note).font(.caption).foregroundStyle(.white.opacity(0.6)).frame(maxWidth: 440, alignment: .leading)
@@ -6405,7 +6405,7 @@ struct LibraryMetrics: View {
                 applyGPUMeter()
             }
             .onDisappear { UIDevice.current.isBatteryMonitoringEnabled = false; madeira_gpu_meter_enable(0) }
-            .onChange(of: model.overlayFields) { _, _ in applyGPUMeter() }
+            .onChange(of: model.overlayFields) { _ in applyGPUMeter() }
             .onReceive(ticks) { now in
                 tick += 1
                 guard tick % max(1, Int((refresh / 0.5).rounded())) == 0 else { return }

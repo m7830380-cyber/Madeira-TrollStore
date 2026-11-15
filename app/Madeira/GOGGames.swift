@@ -136,7 +136,7 @@ struct GOGSheets: ViewModifier {
             content
             // The library reappears after every session: downloads continue then.
             .onAppear { if GOGLibrary.enabled { gog.start(); gog.reconcileSession() } }
-            .onChange(of: scenePhase) { _, phase in if phase == .active && GOGLibrary.enabled { gog.reconcileSession() } }
+            .onChange(of: scenePhase) { phase in if phase == .active && GOGLibrary.enabled { gog.reconcileSession() } }
             .sheet(item: $sheets.gogGame) { selection in
                 GOGGameSheet(productID: selection.id) { entry in
                     // Let the download sheet finish dismissing before presenting the details page.
@@ -378,7 +378,7 @@ struct GOGGameSheet: View {
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 } else {
-                    ContentUnavailableView("Game unavailable", systemImage: "questionmark.square.dashed",
+                    UnavailableNotice("Game unavailable", systemImage: "questionmark.square.dashed",
                                            description: Text("Refresh your GOG library and try again."))
                 }
             }

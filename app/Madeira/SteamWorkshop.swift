@@ -576,7 +576,7 @@ struct SteamWorkshopBrowseView: View {
             // A new order loads through .task(id:); a new search in Search loads here.
             if order == .search { Task { await load(reset: true) } } else { order = .search }
         }
-        .onChange(of: search) { _, text in
+        .onChange(of: search) { text in
             if text.isEmpty && order == .search { order = .trend }
         }
         .task(id: order) { await load(reset: true) }
