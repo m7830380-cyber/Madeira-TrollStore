@@ -40,7 +40,8 @@ if ! command -v ldid >/dev/null; then
   exit 1
 fi
 while IFS= read -r -d '' f; do
-  if file "$f" | rg -q 'Mach-O' && [[ "$f" != "$A/Madeira" ]]; then ldid -S "$f"; fi
+  file_info=$(file "$f")
+  if [[ "$file_info" == *Mach-O* && "$f" != "$A/Madeira" ]]; then ldid -S "$f"; fi
 done < <(find "$A" -type f -print0)
 BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$A/Info.plist")
 # App-bundle keys are outside the code signature; keep the packaged Info.plist

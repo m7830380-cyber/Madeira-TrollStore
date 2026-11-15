@@ -11,6 +11,8 @@
 	<true/>
 	<key>com.apple.security.cs.allow-jit</key>
 	<true/>
+	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+	<true/>
 	<!-- Packaging substitutes the app identifier from Info.plist. -->
 	<key>application-identifier</key>
 	<string>MADEIRA.com.willfaust.madeora</string>
