@@ -197,12 +197,16 @@ final class JITCoordinator: ObservableObject {
     }
 
     var resolvedMethod: JITMethod {
+        if jit_local_mode() { return .stikDebug }
         guard method == .automatic else { return method }
         return StikJITHelper.isAvailable ? .stikDebug : .builtIn
     }
 
     var automaticDescription: String {
-        StikJITHelper.isAvailable
+        if jit_local_mode() {
+            return "On iOS \(UIDevice.current.systemVersion), Madeira asks TrollStore to enable JIT."
+        }
+        return StikJITHelper.isAvailable
             ? L("StikDebug is installed, so Madeira will open it directly.")
             : L("StikDebug was not detected, so Madeira will use its built-in helper.")
     }
@@ -226,6 +230,17 @@ final class JITCoordinator: ObservableObject {
         error = nil
         status = nil
         connectionProblem = nil
+        if jit_local_mode() && resolvedMethod == .stikDebug {
+            StikJITHelper.enableJITViaTrollStore { [weak self] result in
+                Task { @MainActor in
+                    self?.busy = false
+                    self?.status = (try? result.get()).map { _ in L("JIT is enabled.") }
+                    if case .failure(let failure) = result { self?.error = failure.localizedDescription }
+                    completion(result)
+                }
+            }
+            return
+        }
         ensureLoopback(then: { [weak self] restoreOnFailure in
             self?.enableResolved { result in
                 // Nothing will hold the network open now: put back what the shortcut changed.
@@ -312,6 +327,19 @@ final class JITCoordinator: ObservableObject {
         case .automatic:
             assertionFailure("Automatic must resolve to a concrete JIT method")
         case .stikDebug:
+            if jit_local_mode() {
+                busy = true
+                status = "Asking TrollStore to enable JIT…"
+                StikJITHelper.enableJITViaTrollStore { [weak self] result in
+                    Task { @MainActor in
+                        self?.busy = false
+                        self?.status = (try? result.get()).map { _ in L("JIT is enabled.") }
+                        if case .failure(let failure) = result { self?.error = failure.localizedDescription }
+                        completion(result)
+                    }
+                }
+                return
+            }
             guard StikJITHelper.isAvailable else {
                 let message = L("StikDebug is not installed. Install it or choose Built-in StikJIT.")
                 error = message

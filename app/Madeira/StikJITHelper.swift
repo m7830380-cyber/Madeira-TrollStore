@@ -76,6 +76,46 @@ enum StikJITHelper {
         }
     }
 
+    /// TrollStore's URL briefly attaches a debugger and leaves CS_DEBUGGED set.
+    /// The local JIT allocator services pool requests after that attach is gone.
+    static func enableJITViaTrollStore(timeout: TimeInterval = 30,
+                                       completion: @escaping (Result<Void, Error>) -> Void) {
+        let failed = { (message: String) in
+            LogStore.shared.log(message, level: .error)
+            completion(.failure(NSError(domain: "MadeiraJIT", code: 21,
+                                        userInfo: [NSLocalizedDescriptionKey: message])))
+        }
+        guard let bundleID = Bundle.main.bundleIdentifier,
+              var components = URLComponents(string: "apple-magnifier://enable-jit") else {
+            failed("Madeira could not create the TrollStore request.")
+            return
+        }
+        components.queryItems = [URLQueryItem(name: "bundle-id", value: bundleID)]
+        guard let url = components.url else {
+            failed("Madeira could not create the TrollStore request.")
+            return
+        }
+        LogStore.shared.log("Asking TrollStore to enable JIT for \(bundleID)...")
+        UIApplication.shared.open(url, options: [:]) { success in
+            guard success else {
+                failed("TrollStore did not answer. Close Madeira and open it from TrollStore with \"Open with JIT\".")
+                return
+            }
+            let deadline = Date().addingTimeInterval(timeout)
+            let timer = Timer(timeInterval: 0.5, repeats: true) { timer in
+                if SigningStatus.current.debugged {
+                    timer.invalidate()
+                    LogStore.shared.log("JIT enabled by TrollStore (CS_DEBUGGED set).", level: .success)
+                    completion(.success(()))
+                } else if Date() >= deadline {
+                    timer.invalidate()
+                    failed("TrollStore did not enable JIT. Open Madeira from TrollStore with \"Open with JIT\".")
+                }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+
     /// ml1235 (local, 2026-10-02) is folded in here: upstream's waitForDebugger
     /// waits for `ready` (CS_DEBUGGED and a live debugger), which is what ml1235's
     /// pollForJIT did; the flag-only poll reported success at once in the
@@ -220,7 +260,7 @@ enum StikJITHelper {
     /// polls this every 2 s for the whole app run (and waitForDebugger every 0.5 s).
     static var ready: Bool {
         guard SigningStatus.current.debugged else { return false }
-        return !attachCheck || poolTaken || isDebuggerAttached()
+        return !attachCheck || poolTaken || jit_local_mode() || isDebuggerAttached()
     }
 
     /// CS_DEBUGGED is set but nothing can answer a pool request: JIT has to be
@@ -288,6 +328,11 @@ enum StikJITHelper {
     static func allocatePool(poolSize requestedPoolSize: Int = 128 * 1024 * 1024) -> (rx: UnsafeMutableRawPointer, rw: UnsafeMutableRawPointer, size: Int)? {
         var poolSize = requestedPoolSize      // ml1036: may shrink to fit, see the hole census below
         poolFailure = nil
+        if jit_local_mode() && !SigningStatus.current.debugged {
+            poolFailure = "TrollStore has not enabled JIT for this app. Tap Enable JIT first."
+            LogStore.shared.log(poolFailure!, level: .error)
+            return nil
+        }
         LogStore.shared.log("Allocating \(poolSize / 1024 / 1024)MB JIT pool via debugger...")
         // madeira-bcd Social Club layout 2: take the [0x7000000000, +4 GB) hold
         // FIRST. Taken at alias time it lost the race on build 348 (GTA log
@@ -299,6 +344,10 @@ enum StikJITHelper {
         _ = rwAliasHint()
 
         let debuggerAttached = isDebuggerAttached()
+        if jit_local_mode() {
+            jit_arm_trap_fallback()
+            LogStore.shared.log("[local-jit] TrollStore CS_DEBUGGED pool request uses the local RX allocator")
+        }
         LogStore.shared.log("[jit-debugger] attached=\(debuggerAttached ? 1 : 0) at the pool request")
         // With no debugger attached, a JIT request fails the launch with a message; 0 lets it crash the app as before.
         // CS_DEBUGGED stays set after a debugger detaches (JIT enabled by a tool

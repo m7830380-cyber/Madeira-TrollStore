@@ -80,6 +80,17 @@ jobs:
           if-no-files-found: error
           overwrite: true
           compression-level: 0
+      - name: Package TrollStore TIPA
+        run: |
+          brew install ldid
+          MADEIRA_IPA="$PWD/dist/Madeira.ipa" bash tools/build/package-tipa.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Madeira-tipa
+          path: dist/Madeira.tipa
+          if-no-files-found: error
+          overwrite: true
+          compression-level: 0
 
   llvm:
     needs: plan
@@ -404,6 +415,17 @@ jobs:
         with:
           name: Madeira-ipa
           path: dist/Madeira.ipa
+          if-no-files-found: error
+          overwrite: true
+          compression-level: 0
+      - name: Package TrollStore TIPA
+        run: |
+          brew install ldid
+          MADEIRA_IPA="$PWD/dist/Madeira.ipa" bash tools/build/package-tipa.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Madeira-tipa
+          path: dist/Madeira.tipa
           if-no-files-found: error
           overwrite: true
           compression-level: 0

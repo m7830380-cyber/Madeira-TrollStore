@@ -68,8 +68,9 @@ coordinator_route = function(setup, "private func enableResolved(")
 require("ensureLoopback" in coordinator_enable and "self?.enableResolved" in coordinator_enable
         and "switch resolvedMethod" in coordinator_route
         and "enableBuiltIn(completion: completion)" in coordinator_route
-        and setup.count("StikJITHelper.enableJIT") == 1,
-        "the coordinator routes each selected JIT method once, after the loopback check")
+        and "StikJITHelper.enableJITViaTrollStore" in coordinator_route
+        and setup.count("StikJITHelper.enableJIT(") == 0,
+        "the coordinator routes StikDebug, built-in and TrollStore JIT")
 require("JITSetupView()" in content and "JITSettingsSection()" in library,
         "JIT setup is reachable from the main flow and Settings")
 require('dictionary["public_key"]' in setup
@@ -194,5 +195,26 @@ require("guard jitReadyForLaunch(inLibrary: true, entry: entry.id, then: { start
         and play.index("cloudClear(") < play.index("jitReadyForLaunch(")
         and "then: { startDock(game, compactPool: compactPool, profile: profile) }) else { return }" in content,
         "Play and Dock starts continue after JIT without repeating the checks already passed")
+
+# TrollStore uses a brief debugger attach followed by in-process executable
+# allocation on pre-iOS 26, where the iOS 26 BRK handler is unavailable.
+allocator = (app / "JITAllocator.c").read_text()
+package_script = (root / "tools/build/package-tipa.sh").read_text()
+require('apple-magnifier://enable-jit' in stik
+        and 'URLQueryItem(name: "bundle-id", value: bundleID)' in stik
+        and 'guard success else {' in stik
+        and 'if SigningStatus.current.debugged {' in stik,
+        "TrollStore JIT opens its own bundle ID and polls for CS_DEBUGGED")
+require('kern.osproductversion' in allocator
+        and 'CFSTR("MadeiraTrollStore")' in allocator
+        and 'cached = marked && (major == 0 || major < 26)' in allocator
+        and 'if (jit_local_mode()) return addr ? addr : jit_local_alloc_rx(len);' in allocator
+        and 'VM_PROT_READ | VM_PROT_EXECUTE' in allocator,
+        "only the marked pre-iOS 26 TIPA uses local RX allocation")
+require('MadeiraTrollStore' in package_script
+        and 'MadeiraJITHelper.appex' in package_script
+        and 'MadeiraMemoryHost.appex' in package_script
+        and "Set :MinimumOSVersion 18.0" in package_script,
+        "TIPA removes iOS 26 extensions and keeps upstream OS floor")
 
 print("check-jit-method: PASS")

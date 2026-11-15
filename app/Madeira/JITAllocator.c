@@ -14,8 +14,10 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <mach-o/dyld.h>
+#include <CoreFoundation/CoreFoundation.h>
 #include <os/log.h>
 #include <os/proc.h>
+#include <sys/sysctl.h>
 
 // csops syscall - used to check CS_DEBUGGED flag
 #ifndef CS_DEBUGGED
@@ -444,14 +446,59 @@ uint64_t jit_available_memory(void) {
     return (uint64_t)os_proc_available_memory();
 }
 
-// iOS 26 BRK-based JIT syscalls.
-// These use BRK #0xf00d with x16 indicating the command.
-// When a debugger (StikDebug) is attached, it intercepts the BRK,
-// reads x16/x0/x1, performs the operation, and resumes.
-// When no debugger is attached, the SIGTRAP handler skips the BRK.
+// TrollStore's brief debugger attach leaves CS_DEBUGGED set without a debugger
+// to answer the iOS 26 BRK protocol. Enable local allocation only in a TIPA
+// explicitly marked by our package script, not in ordinary sideloads.
+static int jit_os_major(void) {
+    char version[32] = {0};
+    size_t size = sizeof(version) - 1;
+    if (sysctlbyname("kern.osproductversion", version, &size, NULL, 0) != 0) return 0;
+    return atoi(version);
+}
+
+static bool jit_trollstore_install(void) {
+    CFTypeRef marker = CFBundleGetValueForInfoDictionaryKey(CFBundleGetMainBundle(), CFSTR("MadeiraTrollStore"));
+    return marker && CFGetTypeID(marker) == CFBooleanGetTypeID() && CFBooleanGetValue((CFBooleanRef)marker);
+}
+
+bool jit_local_mode(void) {
+    static int cached = -1;
+    if (cached < 0) {
+        const char *override = getenv("MADEIRA_JIT_LOCAL");
+        if (override && (override[0] == '0' || override[0] == '1')) cached = override[0] == '1';
+        else {
+            int major = jit_os_major();
+            bool marked = jit_trollstore_install();
+            // Fail closed toward local allocation for a marked TIPA if the
+            // product version cannot be read; BRK has no debugger to answer.
+            cached = marked && (major == 0 || major < 26);
+        }
+        jit_log("local JIT mode: %s (iOS %d)", cached ? "ON" : "off", jit_os_major());
+    }
+    return cached == 1;
+}
+
+static void *jit_local_alloc_rx(size_t len) {
+    vm_address_t address = 0;
+    size_t size = align_to_page(len);
+    kern_return_t kr = vm_allocate(mach_task_self(), &address, size, VM_FLAGS_ANYWHERE);
+    if (kr != KERN_SUCCESS) {
+        jit_log("[local-jit] vm_allocate(%zu MB) failed kr=%d (%s)", size >> 20, kr, mach_error_string(kr));
+        return NULL;
+    }
+    kr = vm_protect(mach_task_self(), address, size, FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
+    if (kr != KERN_SUCCESS) {
+        jit_log("[local-jit] vm_protect(RX) failed kr=%d (%s) -- is CS_DEBUGGED set?", kr, mach_error_string(kr));
+        vm_deallocate(mach_task_self(), address, size);
+        return NULL;
+    }
+    jit_log("[local-jit] RX pool %zu MB at %p", size >> 20, (void *)address);
+    return (void *)address;
+}
 
 __attribute__((noinline, optnone))
 void *jit26_prepare_region(void *addr, size_t len) {
+    if (jit_local_mode()) return addr ? addr : jit_local_alloc_rx(len);
     register void *x0 __asm__("x0") = addr;
     register size_t x1 __asm__("x1") = len;
     __asm__ volatile(
@@ -466,6 +513,7 @@ void *jit26_prepare_region(void *addr, size_t len) {
 
 __attribute__((noinline, optnone))
 void jit26_detach(void) {
+    if (jit_local_mode()) return;
     __asm__ volatile(
         "mov x16, #0\n"
         "brk #0xf00d\n"

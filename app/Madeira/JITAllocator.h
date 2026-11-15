@@ -71,9 +71,10 @@ bool jit_task_map_range(uint64_t *min_address, uint64_t *max_address);
 // Memory this process may still allocate before the system's limit.
 uint64_t jit_available_memory(void);
 
-// iOS 26 BRK-based protocol: Ask attached debugger (StikDebug) to
-// prepare a memory region for JIT execution.
-// Returns the prepared address (may differ from input on allocation).
+// Select in-process JIT allocation when no debugger can service BRK requests.
+bool jit_local_mode(void);
+
+// iOS 26 BRK-based protocol: prepare RX memory or detach StikDebug.
 void *jit26_prepare_region(void *addr, size_t len);
 
 // iOS 26 BRK-based protocol: Tell the debugger to detach.
