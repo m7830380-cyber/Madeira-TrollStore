@@ -53,6 +53,31 @@ ENTITLEMENTS="$STAGE/trollstore.entitlements"
   -c "Set :keychain-access-groups:0 MADEIRA.$BUNDLE_ID" "$ENTITLEMENTS"
 ldid -S"$ENTITLEMENTS" "$A/Madeira"
 ldid -e "$A/Madeira"
+# ldid replaces Xcode's ad-hoc signatures on bundled dylibs. Refresh only their
+# recorded hashes; runtime-components.py still checks the source/SDK keys and
+# validates every packaged runtime file and binary.
+python3 - "$A" <<'PY'
+import hashlib
+import json
+from pathlib import Path, PurePosixPath
+import sys
+
+bundle = Path(sys.argv[1])
+manifest_path = bundle / 'runtime-build.json'
+manifest = json.loads(manifest_path.read_text())
+for component in manifest['components'].values():
+    for relative in component['files']:
+        if not relative.endswith('.dylib'):
+            continue
+        path = PurePosixPath(relative)
+        if path.is_absolute() or '..' in path.parts:
+            raise SystemExit(f'Unsafe runtime manifest path: {relative}')
+        dylib = bundle.joinpath(*path.parts)
+        if dylib.is_symlink() or not dylib.is_file():
+            raise SystemExit(f'Missing or unsafe runtime dylib: {relative}')
+        component['files'][relative] = hashlib.sha256(dylib.read_bytes()).hexdigest()
+manifest_path.write_text(json.dumps(manifest, sort_keys=True, indent=2) + '\n')
+PY
 
 mkdir -p "$DIST"
 (cd "$STAGE" && zip -qry -9 "$DIST/Madeira.tipa" Payload)
