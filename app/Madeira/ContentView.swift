@@ -4349,18 +4349,27 @@ struct TouchControlsOverlay: View {
     /// The dismissal gesture must never take a control's drag on iOS 26.
     private func editorCanvas(_ screen: CGSize) -> Path {
         var area = Path()
-        area.addRect(CGRect(origin: .zero, size: screen))
+        func addRect(_ rect: CGRect, clockwise: Bool) {
+            let points = clockwise
+                ? [CGPoint(x: rect.minX, y: rect.minY), CGPoint(x: rect.maxX, y: rect.minY),
+                   CGPoint(x: rect.maxX, y: rect.maxY), CGPoint(x: rect.minX, y: rect.maxY)]
+                : [CGPoint(x: rect.minX, y: rect.minY), CGPoint(x: rect.minX, y: rect.maxY),
+                   CGPoint(x: rect.maxX, y: rect.maxY), CGPoint(x: rect.maxX, y: rect.minY)]
+            area.move(to: points[0])
+            for point in points.dropFirst() { area.addLine(to: point) }
+            area.closeSubpath()
+        }
+        addRect(CGRect(origin: .zero, size: screen), clockwise: true)
         for control in m.controls {
             let size = TouchControlsModel.size(control)
             let frame = CGRect(x: CGFloat(control.nx) * screen.width - size.width / 2,
                                y: CGFloat(control.ny) * screen.height - size.height / 2,
                                width: size.width, height: size.height)
-            area.addRect(frame)
+            addRect(frame, clockwise: false)
         }
         if GestureZonesModel.enabled {
-            for zone in zones.zones { area.addRect(zone.rect(in: screen)) }
+            for zone in zones.zones { addRect(zone.rect(in: screen), clockwise: false) }
         }
-        area.usesEvenOddFillRule = true
         return area
     }
 
