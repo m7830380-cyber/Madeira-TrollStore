@@ -96,6 +96,13 @@ final class LibraryGridHostController: UIViewController, UICollectionViewDelegat
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        if #available(iOS 17, *) {
+            registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (self: Self, _: UITraitCollection) in self.contentSizeChanged() }
+            registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: Self, _: UITraitCollection) in self.modelDidChange() }
+        } else {
+            NotificationCenter.default.addObserver(self, selector: #selector(contentSizeCategoryDidChange(_:)), name: UIContentSizeCategory.didChangeNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(appearanceDidChange(_:)), name: UIApplication.didBecomeActiveNotification, object: nil)
+        }
         // The click generators are created now, off the first pinch's path.
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { GridZoomHapticPlayer.shared.prepare() }
         view.backgroundColor = .clear
@@ -161,15 +168,10 @@ final class LibraryGridHostController: UIViewController, UICollectionViewDelegat
                 if let key = cell.coverSourceKey, keys.contains(key) { cell.refreshCover() }
             }
         }
-        // Dynamic Type: the trait (the system setting, and any override above the page).
-        registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (self: Self, _: UITraitCollection) in
-            self.contentSizeChanged()
-        }
-        // Light / dark: the stage's covers carry the style they were built for.
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: Self, _: UITraitCollection) in
-            self.modelDidChange()
-        }
     }
+
+    @objc private func contentSizeCategoryDidChange(_ notification: Notification) { contentSizeChanged() }
+    @objc private func appearanceDidChange(_ notification: Notification) { modelDidChange() }
 
     @objc private func pulled() {
         Task { @MainActor in

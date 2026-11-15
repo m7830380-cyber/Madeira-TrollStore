@@ -34,10 +34,16 @@ final class LibraryGridLabelView: UIView {
         isOpaque = false
         contentMode = .redraw
         isUserInteractionEnabled = false
-        registerForTraitChanges([UITraitPreferredContentSizeCategory.self, UITraitUserInterfaceStyle.self]) { (self: Self, _: UITraitCollection) in
-            self.setNeedsDisplay()
+        if #available(iOS 17, *) {
+            registerForTraitChanges([UITraitPreferredContentSizeCategory.self, UITraitUserInterfaceStyle.self]) { (self: Self, _: UITraitCollection) in
+                self.setNeedsDisplay()
+            }
+        } else {
+            NotificationCenter.default.addObserver(self, selector: #selector(traitsDidChange(_:)), name: UIContentSizeCategory.didChangeNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(traitsDidChange(_:)), name: UIApplication.didBecomeActiveNotification, object: nil)
         }
     }
+    @objc private func traitsDidChange(_ notification: Notification) { setNeedsDisplay() }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override func draw(_ rect: CGRect) {

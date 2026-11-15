@@ -51,7 +51,8 @@ final class LibraryGridZoomCover: UIView {
         dim.addSubview(mark)
         apply(overlay)
         layoutArt()
-        if let traits { traitOverrides.userInterfaceStyle = traits.userInterfaceStyle }
+        if #available(iOS 17, *), let traits { traitOverrides.userInterfaceStyle = traits.userInterfaceStyle }
+        else if let traits, traits.userInterfaceStyle != .unspecified { overrideUserInterfaceStyle = traits.userInterfaceStyle }
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
@@ -335,7 +336,7 @@ final class LibraryGridZoomStage {
         let hosting = UIHostingController(rootView: props.fixed(fixed, frame.width).frame(width: frame.width, height: frame.height, alignment: .topLeading))
         return {
             hosting.view.backgroundColor = .clear
-            hosting.safeAreaRegions = []
+            if #available(iOS 16.4, *) { hosting.safeAreaRegions = [] }
             return hosting.view
         }
     }
