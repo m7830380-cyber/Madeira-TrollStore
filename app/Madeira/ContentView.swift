@@ -4354,17 +4354,14 @@ struct TouchControlsOverlay: View {
             let frame = CGRect(x: CGFloat(control.nx) * screen.width - size.width / 2,
                                y: CGFloat(control.ny) * screen.height - size.height / 2,
                                width: size.width, height: size.height)
-            area = subtract(frame, from: area)
+            if #available(iOS 17, *) { area = area.subtracting(Path(frame)) }
         }
         if GestureZonesModel.enabled {
-            for zone in zones.zones { area = subtract(zone.rect(in: screen), from: area) }
+            for zone in zones.zones {
+                if #available(iOS 17, *) { area = area.subtracting(Path(zone.rect(in: screen))) }
+            }
         }
         return area
-    }
-
-    private func subtract(_ rect: CGRect, from path: Path) -> Path {
-        if #available(iOS 17, *) { return path.subtracting(Path(rect)) }
-        return path
     }
 
     /// Every control in ONE GlassEffectContainer: on iOS 26 the system merges
